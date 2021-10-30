@@ -31,7 +31,7 @@ class StrategyController extends OauthController {
        * Load session auth code
        */
       const authCode = await OauthAuthCode.findById(
-        req.session.oauthAuthCodeId
+        (req.session as any).oauthAuthCodeId
       );
 
       // strategy exists
@@ -104,7 +104,7 @@ class StrategyController extends OauthController {
         } else {
           try {
             // destroy the session
-            req.session.destroy(() => {});
+            (req.session as any).destroy(() => {});
           } catch (error) {}
 
           return OauthHelper.throwError(req, res, {
@@ -151,7 +151,7 @@ class StrategyController extends OauthController {
        * Load session auth code
        */
       const authCode = await OauthAuthCode.findById(
-        req.session.oauthAuthCodeId
+        (req.session as any).oauthAuthCodeId
       );
 
       // strategy exists
@@ -372,7 +372,7 @@ class StrategyController extends OauthController {
       };
 
       if (req.session) {
-        req.session.currentData = currentData;
+        (req.session as any).currentData = currentData;
       } else {
         throw Error("Unable to access to session");
       }

@@ -31,9 +31,9 @@ class AuthorizationController extends OauthController {
 
     if (req.session) {
       const payload = {
-        oauthAuthCodeId: req.session.oauthAuthCodeId,
-        error: req.session.error,
-        inputs: req.session.inputs,
+        oauthAuthCodeId: (req.session as any).oauthAuthCodeId,
+        error: (req.session as any).error,
+        inputs: (req.session as any).inputs,
         order: req.query.order,
       } as {
         oauthAuthCodeId: string;
@@ -60,7 +60,7 @@ class AuthorizationController extends OauthController {
          */
         if (payload.order === "cancel") {
           // clear error
-          req.session.error = undefined;
+          (req.session as any).error = undefined;
 
           return OauthHelper.throwError(
             req,
@@ -177,7 +177,7 @@ class AuthorizationController extends OauthController {
       // session exists
       if (req.session) {
         // clear session
-        req.session.oauthAuthCodeId = oauthCode._id;
+        (req.session as any).oauthAuthCodeId = oauthCode._id;
 
         /**
          * Strategy shortcut
@@ -192,7 +192,7 @@ class AuthorizationController extends OauthController {
           );
         } else {
           // current user
-          const currentData: ISessionCurrentData = req.session.currentData;
+          const currentData: ISessionCurrentData = (req.session as any).currentData;
 
           if (currentData) {
             // redirect authorization code
@@ -241,7 +241,7 @@ class AuthorizationController extends OauthController {
      * *****************************************
      */
     const oauthCode = await OauthAuthCode.findById(
-      req.session?.oauthAuthCodeId
+      (req.session as any)?.oauthAuthCodeId
     );
 
     if (oauthCode) {
@@ -255,12 +255,12 @@ class AuthorizationController extends OauthController {
         if (requiredFields.length !== 0) {
           // set session
           if (req.session) {
-            req.session.error = {
+            (req.session as any).error = {
               message: `${requiredFields.join(", ")} ${
                 requiredFields.length > 1 ? "are" : "is"
               } required.`,
             };
-            req.session.inputs = formData;
+            (req.session as any).inputs = formData;
           } else {
             throw Error("No session defined. Express session required.");
           }
@@ -281,10 +281,10 @@ class AuthorizationController extends OauthController {
         if (!endUserData) {
           // set session
           if (req.session) {
-            req.session.error = {
+            (req.session as any).error = {
               message: `Given credentials are not valid or do not match any record.`,
             };
-            req.session.inputs = formData;
+            (req.session as any).inputs = formData;
           } else {
             throw Error("No session defined. Express session required.");
           }
@@ -311,7 +311,7 @@ class AuthorizationController extends OauthController {
             };
 
             if (req.session) {
-              req.session.currentData = currentData;
+              (req.session as any).currentData = currentData;
             } else {
               throw Error("Unable to access to session");
             }
