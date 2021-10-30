@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { HttpStatus } from "@noreajs/common";
 import OauthContext from "../OauthContext";
+import { OauthStrategy } from "../..";
 
 class OauthController {
   oauthContext: OauthContext;

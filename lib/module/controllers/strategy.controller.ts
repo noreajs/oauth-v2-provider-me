@@ -48,38 +48,46 @@ class StrategyController extends OauthController {
           await authCode.save();
 
           switch (strategy.options.grant) {
-            case "authorization_code":
-              return res.redirect(
-                HttpStatus.TemporaryRedirect,
+            case "authorization_code": {
+              // get the redirection uri
+              const redirectUri =
                 strategy.options.client.authorizationCode.getAuthUri({
                   state: authCode.strategyState,
                   callbackUrl: `${UrlHelper.getFullUrl(req)}/${
                     StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
                   }`.replace(":identifier", strategy.options.identifier),
-                })
-              );
+                });
 
-            case "authorization_code_pkce":
-              return res.redirect(
-                HttpStatus.TemporaryRedirect,
+              // redirect
+              return res.redirect(HttpStatus.TemporaryRedirect, redirectUri);
+            }
+
+            case "authorization_code_pkce": {
+              // get the redirection uri
+              const redirectUri =
                 strategy.options.client.authorizationCodePKCE.getAuthUri({
                   state: authCode.strategyState,
                   callbackUrl: `${UrlHelper.getFullUrl(req)}/${
                     StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
                   }`.replace(":identifier", strategy.options.identifier),
-                })
-              );
+                });
 
-            case "implicit":
-              return res.redirect(
-                HttpStatus.TemporaryRedirect,
-                strategy.options.client.implicit.getAuthUri({
-                  state: authCode.strategyState,
-                  callbackUrl: `${UrlHelper.getFullUrl(req)}/${
-                    StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
-                  }`.replace(":identifier", strategy.options.identifier),
-                })
-              );
+              // redirect
+              return res.redirect(HttpStatus.TemporaryRedirect, redirectUri);
+            }
+
+            case "implicit": {
+              // get redirection uri
+              const redirectUri = strategy.options.client.implicit.getAuthUri({
+                state: authCode.strategyState,
+                callbackUrl: `${UrlHelper.getFullUrl(req)}/${
+                  StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
+                }`.replace(":identifier", strategy.options.identifier),
+              });
+
+              // redirect
+              return res.redirect(HttpStatus.TemporaryRedirect, redirectUri);
+            }
 
             default:
               return OauthHelper.throwError(
@@ -246,6 +254,7 @@ class StrategyController extends OauthController {
           switch (strategy.options.grant) {
             case "authorization_code":
               await strategy.options.client.authorizationCode.getToken({
+                state: authCode.state,
                 callbackUrl: req.originalUrl,
                 onSuccess: async (_token) => {
                   return this.lookupAndRedirect(req, res, authCode, strategy);
@@ -269,6 +278,7 @@ class StrategyController extends OauthController {
 
             case "authorization_code_pkce":
               await strategy.options.client.authorizationCodePKCE.getToken({
+                state: authCode.state,
                 callbackUrl: req.originalUrl,
                 onSuccess: () => {
                   return this.lookupAndRedirect(req, res, authCode, strategy);
@@ -292,7 +302,10 @@ class StrategyController extends OauthController {
 
             case "implicit":
               // extract token
-              strategy.options.client.implicit.getToken(req.originalUrl);
+              strategy.options.client.implicit.getToken(
+                req.originalUrl,
+                authCode.state
+              );
 
               return this.lookupAndRedirect(req, res, authCode, strategy);
 
