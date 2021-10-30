@@ -10,7 +10,7 @@ export interface IOauthAuthCode extends Document {
   authorizationCode: string;
   client: IOauthClient;
   state?: string;
-  strategyState?:string;
+  strategyState?: string;
   scope: string;
   responseType: IAuthorizationResponseType;
   codeChallenge?: string;
@@ -100,7 +100,7 @@ export default mongooseModel<IOauthAuthCode>({
       timestamps: true,
     }
   ),
-  externalConfig: function (schema) {
+  externalConfig: function (schema: Schema) {
     /**
      * Before save
      */

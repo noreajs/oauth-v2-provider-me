@@ -1,16 +1,16 @@
-import { Request, Response } from "express";
-import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
-import { IOauthClient } from "../models/OauthClient";
 import { HttpStatus, Obj } from "@noreajs/common";
-import UrlHelper from "../helpers/UrlHelper";
-import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
+import { Request, Response } from "express";
 import moment from "moment";
 import path from "path";
-import OauthHelper from "../helpers/OauthHelper";
-import OauthController from "./oauth.controller";
-import ISessionCurrentData from "../interfaces/ISessionCurrentData";
 import AuthorizationHelper from "../helpers/AuthorizationHelper";
+import OauthHelper from "../helpers/OauthHelper";
+import UrlHelper from "../helpers/UrlHelper";
+import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
+import ISessionCurrentData from "../interfaces/ISessionCurrentData";
+import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
+import { IOauthClient } from "../models/OauthClient";
 import OauthStrategy from "../strategy/OauthStrategy";
+import OauthController from "./oauth.controller";
 
 class AuthorizationController extends OauthController {
   static OAUTH_DIALOG_PATH = "oauth/v2/dialog";
@@ -192,7 +192,8 @@ class AuthorizationController extends OauthController {
           );
         } else {
           // current user
-          const currentData: ISessionCurrentData = (req.session as any).currentData;
+          const currentData: ISessionCurrentData = (req.session as any)
+            .currentData;
 
           if (currentData) {
             // redirect authorization code
@@ -301,7 +302,7 @@ class AuthorizationController extends OauthController {
          * Refresh session for next use, Save current user data
          * **********************************************
          */
-        req.session?.regenerate(function (err) {
+        req.session?.regenerate(function (err: any) {
           if (err) {
             throw Error("Failed to regenerate session.");
           } else {

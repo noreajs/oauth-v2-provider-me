@@ -1,6 +1,7 @@
 import { HttpStatus, Obj } from "@noreajs/common";
-import { query, Request, Response } from "express";
+import { Request, Response } from "express";
 import { injectQueryParams } from "oauth-v2-client";
+import { v4 as uuidV4 } from "uuid";
 import OauthHelper from "../helpers/OauthHelper";
 import UrlHelper from "../helpers/UrlHelper";
 import ISessionCurrentData from "../interfaces/ISessionCurrentData";
@@ -8,7 +9,6 @@ import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import OauthStrategy from "../strategy/OauthStrategy";
 import AuthorizationController from "./authorization.controller";
 import OauthController from "./oauth.controller";
-import { v4 as uuidV4 } from "uuid";
 
 class StrategyController extends OauthController {
   static OAUTH_STRATEGY_CALLBACK_PATH =
@@ -166,7 +166,7 @@ class StrategyController extends OauthController {
                 onSuccess: async () => {
                   return this.lookupAndRedirect(req, res, authCode, strategy);
                 },
-                onError: (error) => {
+                onError: (error: any) => {
                   return OauthHelper.throwError(
                     req,
                     res,
@@ -254,12 +254,12 @@ class StrategyController extends OauthController {
           switch (strategy.options.grant) {
             case "authorization_code":
               await strategy.options.client.authorizationCode.getToken({
-                state: authCode.state,
+                state: authCode.strategyState,
                 callbackUrl: req.originalUrl,
-                onSuccess: async (_token) => {
+                onSuccess: async (_token: string) => {
                   return this.lookupAndRedirect(req, res, authCode, strategy);
                 },
-                onError: (error) => {
+                onError: (error: any) => {
                   return OauthHelper.throwError(
                     req,
                     res,
@@ -278,12 +278,12 @@ class StrategyController extends OauthController {
 
             case "authorization_code_pkce":
               await strategy.options.client.authorizationCodePKCE.getToken({
-                state: authCode.state,
+                state: authCode.strategyState,
                 callbackUrl: req.originalUrl,
                 onSuccess: () => {
                   return this.lookupAndRedirect(req, res, authCode, strategy);
                 },
-                onError: (error) => {
+                onError: (error: any) => {
                   return OauthHelper.throwError(
                     req,
                     res,
@@ -304,7 +304,7 @@ class StrategyController extends OauthController {
               // extract token
               strategy.options.client.implicit.getToken(
                 req.originalUrl,
-                authCode.state
+                authCode.strategyState
               );
 
               return this.lookupAndRedirect(req, res, authCode, strategy);
