@@ -1,6 +1,6 @@
 {
   "name": "@noreajs/oauth-v2-provider-me",
-  "version": "0.2.4-3",
+  "version": "0.2.4-4",
   "description": "Oauth 2 Provider for Node.js using MongoDB and Express",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
