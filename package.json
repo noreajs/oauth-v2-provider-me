@@ -37,7 +37,7 @@
   "devDependencies": {
     "@noreajs/common": "^1.1.3",
     "@noreajs/core": "^1.1.9",
-    "@noreajs/mongoose": "^0.2.4",
+    "@noreajs/mongoose": "^0.2.5",
     "@types/body-parser": "^1.19.0",
     "@types/colors": "^1.2.1",
     "@types/cookie-parser": "^1.4.2",
@@ -71,7 +71,7 @@
   },
   "peerDependencies": {
     "@noreajs/common": "^1.1.3",
-    "@noreajs/mongoose": "^0.2.4",
+    "@noreajs/mongoose": "^0.2.5",
     "@types/express": "^4.17.6",
     "@types/express-session": "^1.17.0",
     "axios": "^0.21.1",
