@@ -1,16 +1,14 @@
 import { mongooseModel } from "@noreajs/mongoose";
-import { Document, Schema, HookNextFunction } from "mongoose";
-import validator from "validator";
-import OauthAccessToken, { IOauthAccessToken } from "./OauthAccessToken";
 import { Request } from "express";
 import moment from "moment";
+import { Document, Schema } from "mongoose";
+import validator from "validator";
 import OauthHelper from "../helpers/OauthHelper";
-import OauthRefreshToken, { IOauthRefreshToken } from "./OauthRefreshToken";
 import UtilsHelper from "../helpers/UtilsHelper";
 import OauthContext from "../OauthContext";
-import OauthScope from "./OauthScope";
-import { Arr, Obj } from "@noreajs/common";
 import oauthScopeProvider from "../providers/oauth-scope.provider";
+import OauthAccessToken, { IOauthAccessToken } from "./OauthAccessToken";
+import OauthRefreshToken, { IOauthRefreshToken } from "./OauthRefreshToken";
 
 export type OauthClientType = "confidential" | "public";
 export type OauthClientProfileType = "web" | "user-agent-based" | "native";
@@ -149,7 +147,7 @@ export default mongooseModel<IOauthClient>({
           },
           {
             validator: function (values: string[]) {
-              const self = this as IOauthClient;
+              const self = this as unknown as IOauthClient;
               if (
                 self.grants.includes("implicit") ||
                 self.grants.includes("authorization_code")
@@ -159,8 +157,7 @@ export default mongooseModel<IOauthClient>({
                 return true;
               }
             },
-            msg:
-              "At least one redirect URI when grants includes 'implicit' and 'authorization_code'",
+            msg: "At least one redirect URI when grants includes 'implicit' and 'authorization_code'",
           },
         ],
         required: false,
@@ -181,7 +178,7 @@ export default mongooseModel<IOauthClient>({
         validate: [
           {
             validator: function (value: string) {
-              const self = this as IOauthClient;
+              const self = this as unknown as IOauthClient;
               return !(!self.internal && value === "*");
             },
             message: "* is not allowed as scope value for external client.",
@@ -302,10 +299,9 @@ export default mongooseModel<IOauthClient>({
          * ********************************************************************
          */
         if (
-          !([
-            "client_credentials",
-            "implicit",
-          ] as OauthClientGrantType[]).includes(params.grant) &&
+          !(
+            ["client_credentials", "implicit"] as OauthClientGrantType[]
+          ).includes(params.grant) &&
           this.clientType === "confidential"
         ) {
           /**
@@ -381,7 +377,7 @@ export default mongooseModel<IOauthClient>({
      * Before validate
      * ******************************
      */
-    sc.pre<IOauthClient>("validate", function (next: HookNextFunction) {
+    sc.pre<IOauthClient>("validate", function (next) {
       /**
        * Secret code availability
        * **********************
@@ -437,7 +433,7 @@ export default mongooseModel<IOauthClient>({
      * Before save
      * ***************************************
      */
-    sc.pre<IOauthClient>("save", async function (next: HookNextFunction) {
+    sc.pre<IOauthClient>("save", async function (next) {
       /**
        * Verify missing scopes
        */

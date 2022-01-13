@@ -1,6 +1,6 @@
+import { Arr, Obj } from "@noreajs/common";
+import { CallbackError, PreSaveMiddlewareFunction } from "mongoose";
 import { OauthScope } from "../..";
-import { Obj, Arr } from "@noreajs/common";
-import { HookNextFunction } from "mongoose";
 
 class OauthScopeProvider {
   /**
@@ -25,7 +25,10 @@ class OauthScopeProvider {
    * @param scope scope
    * @param next Mongoose Hook Next Function
    */
-  async validateScopesHook(scope: string, next: HookNextFunction) {
+  async validateScopesHook(
+    scope: string,
+    next: (err?: CallbackError | undefined) => void
+  ) {
     const r = await this.validateScopes(scope);
     if (r.length !== 0) {
       next({

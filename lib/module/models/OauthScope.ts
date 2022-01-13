@@ -1,7 +1,5 @@
 import { mongooseModel } from "@noreajs/mongoose";
 import { Document, Schema } from "mongoose";
-import { OauthScope } from "../..";
-import { Arr, Obj } from "@noreajs/common";
 
 export interface IOauthScope extends Document {
   parent: IOauthScope;

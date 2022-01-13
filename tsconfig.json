@@ -1,5 +1,5 @@
 {
-  "include": ["lib/**/*"],
+  "include": ["lib/**/*", "typings/**/*"],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 

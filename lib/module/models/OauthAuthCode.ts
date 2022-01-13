@@ -1,5 +1,5 @@
 import { mongooseModel } from "@noreajs/mongoose";
-import { Document, HookNextFunction, Schema } from "mongoose";
+import { Document, Schema } from "mongoose";
 import validator from "validator";
 import { IAuthorizationResponseType } from "../interfaces/IAuthCodeRequest";
 import oauthScopeProvider from "../providers/oauth-scope.provider";
@@ -34,7 +34,7 @@ export default mongooseModel<IOauthAuthCode>({
         validate: [
           {
             validator: function (value: string) {
-              const self = this as IOauthAuthCode;
+              const self = this as unknown as IOauthAuthCode;
               return !(
                 self.userId !== null &&
                 self.userId != undefined &&
@@ -104,7 +104,7 @@ export default mongooseModel<IOauthAuthCode>({
     /**
      * Before save
      */
-    schema.pre<IOauthAuthCode>("save", async function (next: HookNextFunction) {
+    schema.pre<IOauthAuthCode>("save", async function (next) {
       /**
        * Verify missing scopes
        */

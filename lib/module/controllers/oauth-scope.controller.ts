@@ -12,11 +12,12 @@ export default class OauthScopeController extends OauthController {
    * @param res response
    */
   async all(req: Request, res: Response) {
-    await OauthScope.paginate()
-      .then((result) => {
+    await (OauthScope as any)
+      .paginate()
+      .then((result: any) => {
         return res.status(HttpStatus.Ok).json(result);
       })
-      .catch((e) => {
+      .catch((e: any) => {
         return res
           .status(HttpStatus.InternalServerError)
           .json(serializeError(e));

@@ -15,11 +15,11 @@ class OauthClientController extends OauthController{
    * @param res response
    */
   async all(req: Request, res: Response) {
-    await OauthClient.paginate()
-      .then((result) => {
+    await (OauthClient as any).paginate()
+      .then((result:any) => {
         return res.status(HttpStatus.Ok).json(result);
       })
-      .catch((e) => {
+      .catch((e:any) => {
         return res
           .status(HttpStatus.InternalServerError)
           .json(serializeError(e));

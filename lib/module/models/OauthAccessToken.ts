@@ -1,9 +1,7 @@
-import { IOauthClient, OauthClientGrantType } from "./OauthClient";
 import { mongooseModel } from "@noreajs/mongoose";
-import { Schema, Document, HookNextFunction } from "mongoose";
-import { Arr, Obj } from "@noreajs/common";
-import OauthScope from "./OauthScope";
+import { Document, Schema } from "mongoose";
 import oauthScopeProvider from "../providers/oauth-scope.provider";
+import { IOauthClient, OauthClientGrantType } from "./OauthClient";
 
 export interface IOauthAccessToken extends Document {
   userId: string;
@@ -64,9 +62,7 @@ export default mongooseModel<IOauthAccessToken>({
     /**
      * Before save
      */
-    schema.pre<IOauthAccessToken>("save", async function (
-      next: HookNextFunction
-    ) {
+    schema.pre<IOauthAccessToken>("save", async function (next) {
       /**
        * Verify missing scopes
        */
