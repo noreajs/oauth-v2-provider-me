@@ -2,7 +2,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
-import { HttpStatus, Obj } from "@noreajs/common";
+import { Obj } from "@noreajs/common";
 import OauthRefreshToken, {
   IOauthRefreshToken,
 } from "../models/OauthRefreshToken";
@@ -14,6 +14,7 @@ import ITokenRevokeRequest from "../interfaces/ITokenRevokeRequest";
 import OauthAccessToken, {
   IOauthAccessToken,
 } from "../models/OauthAccessToken";
+import HttpStatus from "./HttpStatus";
 
 class RevokeTokenHelper {
   /**

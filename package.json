@@ -35,9 +35,9 @@
   },
   "homepage": "https://github.com/noreajs/oauth-v2-provider-me#readme",
   "devDependencies": {
-    "@noreajs/common": "^1.1.3",
-    "@noreajs/core": "^1.1.9",
-    "@noreajs/mongoose": "^0.2.6",
+    "@noreajs/common": "2.0.0",
+    "@noreajs/core": "^2.1.6",
+    "@noreajs/mongoose": "0.2.6",
     "@types/body-parser": "^1.19.0",
     "@types/colors": "^1.2.1",
     "@types/cookie-parser": "^1.4.2",
@@ -51,10 +51,12 @@
     "copyfiles": "^2.4.0",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
+    "moment": "^2.29.1",
     "mongoose": "^6.1.6",
-    "oauth-v2-client": "^0.0.8",
+    "oauth-v2-client": "0.0.9",
     "typescript": "^3.9.3",
-    "unixcrypt": "^1.0.10"
+    "unixcrypt": "^1.0.10",
+    "uuid": "^8.3.2"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -63,21 +65,21 @@
     "csurf": "^1.11.0",
     "ejs": "^3.1.3",
     "jsonwebtoken": "^8.5.1",
-    "moment": "^2.26.0",
     "rand-token": "^1.0.1",
     "serialize-error": "^7.0.1",
-    "uuid": "^8.1.0",
     "validator": "^13.0.0"
   },
   "peerDependencies": {
-    "@noreajs/common": "^1.1.3",
-    "@noreajs/mongoose": "^0.2.6",
+    "@noreajs/common": ">= 2.0.0",
+    "@noreajs/mongoose": ">= 0.2.6",
     "@types/express": "^4.17.6",
     "@types/express-session": "^1.17.0",
     "axios": "^0.21.1",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
-    "oauth-v2-client": "^0.0.8"
+    "moment": "^2.29.1",
+    "oauth-v2-client": ">= 0.0.9",
+    "uuid": "^8.3.2"
   },
   "peerDependenciesMeta": {
     "@types/express": {

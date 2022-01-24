@@ -1,7 +1,8 @@
-import { HttpStatus, Obj } from "@noreajs/common";
+import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import { injectQueryParams } from "oauth-v2-client";
 import { v4 as uuidV4 } from "uuid";
+import HttpStatus from "../helpers/HttpStatus";
 import OauthHelper from "../helpers/OauthHelper";
 import UrlHelper from "../helpers/UrlHelper";
 import ISessionCurrentData from "../interfaces/ISessionCurrentData";

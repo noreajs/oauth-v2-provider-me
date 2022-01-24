@@ -3,7 +3,7 @@ import moment from "moment";
 import OauthController from "./oauth.controller";
 import OauthAccessToken from "../models/OauthAccessToken";
 import OauthAuthCode from "../models/OauthAuthCode";
-import { HttpStatus } from "@noreajs/common";
+import HttpStatus from "../helpers/HttpStatus";
 
 type PurgeType = "revoked" | "expired";
 const PurgeTypeList = ["revoked", "expired"];

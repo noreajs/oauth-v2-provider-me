@@ -1,9 +1,9 @@
 import OauthController from "./oauth.controller";
 import OauthScope, { IOauthScope } from "../models/OauthScope";
-import { HttpStatus } from "@noreajs/common";
 import { Request, Response } from "express";
 import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
+import HttpStatus from "../helpers/HttpStatus";
 
 export default class OauthScopeController extends OauthController {
   /**

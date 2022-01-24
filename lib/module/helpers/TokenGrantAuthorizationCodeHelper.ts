@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { HttpStatus } from "@noreajs/common";
 import IToken from "../interfaces/IToken";
 import OauthAuthCode from "../models/OauthAuthCode";
 import moment from "moment";
@@ -9,6 +8,7 @@ import { toASCII } from "punycode";
 import { IOauthClient } from "../models/OauthClient";
 import OauthHelper from "./OauthHelper";
 import OauthContext from "../OauthContext";
+import HttpStatus from "./HttpStatus";
 
 class TokenGrantAuthorizationCodeHelper {
   /**

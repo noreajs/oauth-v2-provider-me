@@ -1,16 +1,17 @@
-import ITokenRequest from "../interfaces/ITokenRequest";
+import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { IOauthClient } from "../models/OauthClient";
-import { HttpStatus, checkRequiredKeys, Obj } from "@noreajs/common";
-import OauthRefreshToken, {
-  IOauthRefreshToken,
-} from "../models/OauthRefreshToken";
 import moment from "moment";
 import IToken from "../interfaces/IToken";
-import OauthHelper from "./OauthHelper";
-import { IJwtTokenPayload } from "../interfaces/IJwt";
+import ITokenRequest from "../interfaces/ITokenRequest";
+import { IOauthClient } from "../models/OauthClient";
+import OauthRefreshToken, {
+  IOauthRefreshToken
+} from "../models/OauthRefreshToken";
 import OauthContext from "../OauthContext";
+import OauthHelper from "./OauthHelper";
+import HttpStatus from "./HttpStatus";
+import { IJwtTokenPayload } from "../..";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -179,7 +180,7 @@ class TokenGrantRefreshTokenHelper {
          */
         return OauthHelper.throwError(req, res, {
           error: "invalid_grant",
-          error_description: error.message,
+          error_description: (error as any).message,
         });
       }
     } catch (error) {

@@ -7,7 +7,7 @@ import UrlHelper from "./UrlHelper";
 import OauthHelper from "./OauthHelper";
 import IToken from "../interfaces/IToken";
 import OauthContext from "../OauthContext";
-import { HttpStatus } from "@noreajs/common";
+import HttpStatus from "./HttpStatus";
 
 class AuthorizationHelper {
   static run = async function (

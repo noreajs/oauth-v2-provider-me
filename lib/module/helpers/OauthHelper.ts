@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { sign } from "jsonwebtoken";
 import UrlHelper from "./UrlHelper";
-import { HttpStatus, Obj } from "@noreajs/common";
+import { Obj } from "@noreajs/common";
 import IOauthError from "../interfaces/IOauthError";
 import { IJwtTokenPayload } from "../interfaces/IJwt";
 import OauthContext from "../OauthContext";
+import HttpStatus from "./HttpStatus";
 
 class OauthHelper {
   /**

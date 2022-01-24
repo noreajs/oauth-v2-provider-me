@@ -1,11 +1,11 @@
+import { Obj } from "@noreajs/common";
+import { Request, Response } from "express";
+import IToken from "../interfaces/IToken";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
-import IToken from "../interfaces/IToken";
-import { HttpStatus, checkRequiredKeys } from "@noreajs/common";
-import { Request, Response } from "express";
-import UtilsHelper from "./UtilsHelper";
-import OauthHelper from "./OauthHelper";
 import OauthContext from "../OauthContext";
+import HttpStatus from "./HttpStatus";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -33,7 +33,7 @@ class TokenGrantPasswordCredentialsHelper {
          * Required parameters
          * *********************************
          */
-        const requiredParameters = checkRequiredKeys<ITokenRequest>(
+        const requiredParameters = Obj.missingKeys<ITokenRequest>(
           ["username", "password"],
           data
         );
@@ -108,7 +108,7 @@ class TokenGrantPasswordCredentialsHelper {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-          extra: error
+        extra: error,
       });
     }
   }

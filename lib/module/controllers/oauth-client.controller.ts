@@ -1,10 +1,10 @@
-import { Request, Response } from "express";
-import OauthClient, { IOauthClient } from "../models/OauthClient";
-import { HttpStatus } from "@noreajs/common";
-import crypto from "crypto";
-import { v4 as uuidV4 } from "uuid";
-import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
+import crypto from "crypto";
+import { Request, Response } from "express";
+import { serializeError } from "serialize-error";
+import { v4 as uuidV4 } from "uuid";
+import HttpStatus from "../helpers/HttpStatus";
+import OauthClient, { IOauthClient } from "../models/OauthClient";
 import OauthController from "./oauth.controller";
 
 class OauthClientController extends OauthController{

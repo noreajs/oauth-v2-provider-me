@@ -1,6 +1,6 @@
-import crypto, { constants } from "crypto";
-import path from "path";
+import crypto from "crypto";
 import fs from "fs";
+import path from "path";
 import { suid } from "rand-token";
 
 class UtilsHelper {
@@ -98,7 +98,7 @@ class UtilsHelper {
 
     // encrypt the given text
     const decrypted =
-      decipher.update(text, "binary", "utf8") + decipher.final("utf8");
+      decipher.update(text, "binary" as any, "utf8") + decipher.final("utf8");
 
     return decrypted;
   }

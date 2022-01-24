@@ -1,4 +1,4 @@
-import { HttpStatus, Obj } from "@noreajs/common";
+import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import moment from "moment";
 import path from "path";
@@ -11,6 +11,7 @@ import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import { IOauthClient } from "../models/OauthClient";
 import OauthStrategy from "../strategy/OauthStrategy";
 import OauthController from "./oauth.controller";
+import HttpStatus from "../helpers/HttpStatus";
 
 class AuthorizationController extends OauthController {
   static OAUTH_DIALOG_PATH = "oauth/v2/dialog";
