@@ -1,15 +1,19 @@
-import { Application, Request, Response, NextFunction } from "express";
-import { IOauthContext } from "./interfaces/IOauthContext";
-import oauthRoutes from "./routes/oauth.routes";
-import OauthContext from "./OauthContext";
-import jwt from "jsonwebtoken";
-import { IJwtTokenPayload } from "./interfaces/IJwt";
-import OauthAccessToken from "./models/OauthAccessToken";
 import { replaceAllMatch } from "@noreajs/common";
-import HttpStatus from "./helpers/HttpStatus";
-import IOauthInitMethodParams from "./interfaces/IOauthInitMethodParams";
-import session from "express-session";
 import colors from "colors";
+import { Application, NextFunction, Request, Response } from "express";
+import session from "express-session";
+import jwt from "jsonwebtoken";
+import HttpStatus from "./helpers/HttpStatus";
+import { IJwtTokenPayload } from "./interfaces/IJwt";
+import { IOauthContext } from "./interfaces/IOauthContext";
+import IOauthInitMethodParams from "./interfaces/IOauthInitMethodParams";
+import IToken from "./interfaces/IToken";
+import OauthAccessToken from "./models/OauthAccessToken";
+import OauthClient, {
+  OauthClientGrantType
+} from "./models/OauthClient";
+import OauthContext from "./OauthContext";
+import oauthRoutes from "./routes/oauth.routes";
 
 export default class Oauth {
   static ERRORS = {
@@ -318,5 +322,52 @@ export default class Oauth {
         return next();
       }
     };
+  }
+
+  /**
+   * Generate a token out of all process
+   * @param options parameters
+   * @returns 
+   */
+  static async personalToken(options: {
+    req: {
+      host: string;
+      userAgent?: string;
+    };
+    clientId: string;
+    grant: OauthClientGrantType;
+    scope: string;
+    subject: string;
+  }) {
+    // auth instance
+    const oauth = this.getInstance();
+
+    // load client
+    const client = await OauthClient.findOne({
+      clientId: options.clientId,
+    });
+
+    // given client exists
+    if (client) {
+      /**
+       * Save access token data
+       */
+      const tokenData = await client.newAccessToken({
+        req: options.req,
+        oauthContext: oauth.context,
+        grant: options.grant,
+        scope: options.scope,
+        subject: options.subject,
+      });
+
+      return {
+        access_token: tokenData.token,
+        token_type: oauth.context.tokenType,
+        expires_in: tokenData.accessTokenExpireIn,
+        refresh_token: tokenData.refreshToken,
+      } as IToken;
+    } else {
+      console.error(`Client \`${options.clientId}\` not found.`);
+    }
   }
 }

@@ -1,11 +1,11 @@
+import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import { sign } from "jsonwebtoken";
-import UrlHelper from "./UrlHelper";
-import { Obj } from "@noreajs/common";
-import IOauthError from "../interfaces/IOauthError";
 import { IJwtTokenPayload } from "../interfaces/IJwt";
+import IOauthError from "../interfaces/IOauthError";
 import OauthContext from "../OauthContext";
 import HttpStatus from "./HttpStatus";
+import UrlHelper from "./UrlHelper";
 
 class OauthHelper {
   /**
@@ -40,9 +40,7 @@ class OauthHelper {
    * Get basic authentification header
    * @param request request
    */
-  getBasicAuthHeaderCredentials(
-    request: Request
-  ):
+  getBasicAuthHeaderCredentials(request: Request):
     | {
         client_id: string;
         client_secret: string;
@@ -65,10 +63,21 @@ class OauthHelper {
     }
   }
 
-  jwtSign(req: Request, oauthContext: OauthContext, claims: IJwtTokenPayload) {
+  /**
+   * Jwt sign
+   * @param issuer provider current full url
+   * @param oauthContext oauth context
+   * @param claims oauth v2 claims
+   * @returns
+   */
+  jwtSign(
+    issuer: string,
+    oauthContext: OauthContext,
+    claims: IJwtTokenPayload
+  ) {
     return sign(claims, oauthContext.secretKey, {
       algorithm: oauthContext.jwtAlgorithm,
-      issuer: UrlHelper.getFullUrl(req),
+      issuer: issuer,
     });
   }
 

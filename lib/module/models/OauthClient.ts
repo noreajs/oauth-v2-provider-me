@@ -1,5 +1,4 @@
 import { mongooseModel } from "@noreajs/mongoose";
-import { Request } from "express";
 import moment from "moment";
 import { Document, Schema } from "mongoose";
 import validator from "validator";
@@ -25,7 +24,7 @@ export type OauthTokenType = {
 };
 
 export type NewAccessTokenParamsType = {
-  req: Request;
+  req: { host: string; userAgent?: string };
   oauthContext: OauthContext;
   grant: OauthClientGrantType;
   scope: string;
@@ -273,12 +272,12 @@ export default mongooseModel<IOauthClient>({
           name: this.name,
           scope: params.scope,
           expiresAt: moment().add(accessTokenExpiresIn, "seconds").toDate(),
-          userAgent: params.req.headers["user-agent"],
+          userAgent: params.req.userAgent,
         } as Partial<IOauthAccessToken>).save();
 
         // return object
         const r: OauthTokenType = {
-          token: OauthHelper.jwtSign(params.req, params.oauthContext, {
+          token: OauthHelper.jwtSign(params.req.host, params.oauthContext, {
             client_id: this.clientId,
             scope: params.scope,
             azp: this.domaine ?? this.clientId,
@@ -320,7 +319,7 @@ export default mongooseModel<IOauthClient>({
            * **********************
            */
           r.refreshToken = OauthHelper.jwtSign(
-            params.req,
+            params.req.host,
             params.oauthContext,
             {
               client_id: this.clientId,

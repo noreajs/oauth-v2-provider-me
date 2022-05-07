@@ -6,6 +6,7 @@ import { IOauthClient } from "../models/OauthClient";
 import OauthContext from "../OauthContext";
 import HttpStatus from "./HttpStatus";
 import OauthHelper from "./OauthHelper";
+import UrlHelper from "./UrlHelper";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -82,7 +83,10 @@ class TokenGrantPasswordCredentialsHelper {
          * ******************************
          */
         const tokens = await client.newAccessToken({
-          req: req,
+          req: {
+            host: UrlHelper.getFullUrl(req),
+            userAgent: req.headers["user-agent"],
+          },
           oauthContext: oauthContext,
           grant: "password",
           scope: mergedScope,
