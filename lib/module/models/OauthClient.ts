@@ -47,6 +47,7 @@ export interface IOauthClient extends Document {
   programmingLanguage: string;
   scope: string;
   revokedAt?: Date;
+  personal?: boolean;
   validateScope: (scope: String) => boolean;
   accessTokenExpiresIn: (oauthContext: OauthContext) => number;
   refreshTokenExpiresIn: (oauthContext: OauthContext) => number;
@@ -186,6 +187,10 @@ export default mongooseModel<IOauthClient>({
       },
       revokedAt: {
         type: Schema.Types.Date,
+      },
+      personal: {
+        type: Schema.Types.Boolean,
+        default: false,
       },
     },
     {

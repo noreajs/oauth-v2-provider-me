@@ -7,19 +7,19 @@ import HttpStatus from "../helpers/HttpStatus";
 import OauthClient, { IOauthClient } from "../models/OauthClient";
 import OauthController from "./oauth.controller";
 
-class OauthClientController extends OauthController{
-
+class OauthClientController extends OauthController {
   /**
    * Get all clients
    * @param req request
    * @param res response
    */
   async all(req: Request, res: Response) {
-    await (OauthClient as any).paginate()
-      .then((result:any) => {
+    await (OauthClient as any)
+      .paginate()
+      .then((result: any) => {
         return res.status(HttpStatus.Ok).json(result);
       })
-      .catch((e:any) => {
+      .catch((e: any) => {
         return res
           .status(HttpStatus.InternalServerError)
           .json(serializeError(e));
@@ -48,6 +48,7 @@ class OauthClientController extends OauthController{
         clientProfile: req.body.clientProfile,
         secretKey: crypto.randomBytes(64).toString("hex"),
         redirectURIs: req.body.redirectURIs,
+        personal: req.body.personal,
       } as Partial<IOauthClient>).save();
 
       return res.status(HttpStatus.Created).json(client);
@@ -70,20 +71,40 @@ class OauthClientController extends OauthController{
       if (client) {
         // apply changes
         client.set({
-          name: req.body.name || client.name,
-          domaine: req.body.domaine || client.domaine,
-          logo: req.body.logo || client.logo,
-          programmingLanguage:
-            req.body.programmingLanguage || client.programmingLanguage,
-          scope: req.body.scope || client.scope,
-          internal:
-            req.body.internal !== undefined
-              ? req.body.internal
-              : client.internal,
-          legalTermsAcceptedAt:
-            req.body.legalTermsAcceptedAt || client.legalTermsAcceptedAt,
-          clientProfile: req.body.clientProfile || client.clientProfile,
-          redirectURIs: req.body.redirectURIs || client.redirectURIs,
+          name: Object.keys(req.body).includes("name")
+            ? req.body.name
+            : client.name,
+          domaine: Object.keys(req.body).includes("domaine")
+            ? req.body.domaine
+            : client.domaine,
+          logo: Object.keys(req.body).includes("logo")
+            ? req.body.logo
+            : client.logo,
+          programmingLanguage: Object.keys(req.body).includes(
+            "programmingLanguage"
+          )
+            ? req.body.programmingLanguage
+            : client.programmingLanguage,
+          scope: Object.keys(req.body).includes("scope")
+            ? req.body.scope
+            : client.scope,
+          internal: Object.keys(req.body).includes("internal")
+            ? req.body.internal
+            : client.internal,
+          legalTermsAcceptedAt: Object.keys(req.body).includes(
+            "legalTermsAcceptedAt"
+          )
+            ? req.body.legalTermsAcceptedAt
+            : client.legalTermsAcceptedAt,
+          clientProfile: Object.keys(req.body).includes("clientProfile")
+            ? req.body.clientProfile
+            : client.clientProfile,
+          redirectURIs: Object.keys(req.body).includes("redirectURIs")
+            ? req.body.redirectURIs
+            : client.redirectURIs,
+          personal: Object.keys(req.body).includes("personal")
+            ? req.body.personal
+            : client.personal,
         } as Partial<IOauthClient>);
         // change approval state
         if (req.body.revoked !== undefined) {

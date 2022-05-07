@@ -65,7 +65,7 @@ class AuthorizationMiddleware {
       const client = await OauthClient.findOne({ clientId: data.client_id });
 
       /**
-       * Client has to exist
+       * Client exists
        */
       if (!client) {
         return OauthHelper.throwError(
@@ -78,6 +78,16 @@ class AuthorizationMiddleware {
           },
           data.redirect_uri
         );
+      }
+
+      /**
+       * Personal client not allowed
+       */
+      if (client.personal) {
+        return OauthHelper.throwError(req, res, {
+          error: "unauthorized_client",
+          error_description: "Personal client are not allowed",
+        });
       }
 
       // Client revoked

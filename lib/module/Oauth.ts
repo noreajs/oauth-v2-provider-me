@@ -9,9 +9,7 @@ import { IOauthContext } from "./interfaces/IOauthContext";
 import IOauthInitMethodParams from "./interfaces/IOauthInitMethodParams";
 import IToken from "./interfaces/IToken";
 import OauthAccessToken from "./models/OauthAccessToken";
-import OauthClient, {
-  OauthClientGrantType
-} from "./models/OauthClient";
+import OauthClient, { OauthClientGrantType } from "./models/OauthClient";
 import OauthContext from "./OauthContext";
 import oauthRoutes from "./routes/oauth.routes";
 
@@ -327,7 +325,7 @@ export default class Oauth {
   /**
    * Generate a token out of all process
    * @param options parameters
-   * @returns 
+   * @returns
    */
   static async personalToken(options: {
     req: {
@@ -335,7 +333,6 @@ export default class Oauth {
       userAgent?: string;
     };
     clientId: string;
-    grant: OauthClientGrantType;
     scope: string;
     subject: string;
   }) {
@@ -349,23 +346,30 @@ export default class Oauth {
 
     // given client exists
     if (client) {
-      /**
-       * Save access token data
-       */
-      const tokenData = await client.newAccessToken({
-        req: options.req,
-        oauthContext: oauth.context,
-        grant: options.grant,
-        scope: options.scope,
-        subject: options.subject,
-      });
+      // only personal client allowed
+      if (client.personal) {
+        /**
+         * Save access token data
+         */
+        const tokenData = await client.newAccessToken({
+          req: options.req,
+          oauthContext: oauth.context,
+          grant: "password",
+          scope: options.scope,
+          subject: options.subject,
+        });
 
-      return {
-        access_token: tokenData.token,
-        token_type: oauth.context.tokenType,
-        expires_in: tokenData.accessTokenExpireIn,
-        refresh_token: tokenData.refreshToken,
-      } as IToken;
+        return {
+          access_token: tokenData.token,
+          token_type: oauth.context.tokenType,
+          expires_in: tokenData.accessTokenExpireIn,
+          refresh_token: tokenData.refreshToken,
+        } as IToken;
+      } else {
+        throw new Error(
+          "Only personal client can be used to generate personal token"
+        );
+      }
     } else {
       console.error(`Client \`${options.clientId}\` not found.`);
     }

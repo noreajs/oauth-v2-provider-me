@@ -51,6 +51,16 @@ class AccessTokenController extends OauthController {
         });
       }
 
+      /**
+       * Personal client not allowed
+       */
+      if (client.personal) {
+        return OauthHelper.throwError(req, res, {
+          error: "unauthorized_client",
+          error_description: "Personal client are not allowed",
+        });
+      }
+
       // Client revoked
       if (client.revokedAt) {
         return OauthHelper.throwError(req, res, {
