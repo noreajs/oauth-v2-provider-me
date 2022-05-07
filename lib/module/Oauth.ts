@@ -333,6 +333,7 @@ export default class Oauth {
       userAgent?: string;
     };
     clientId: string;
+    clientSecret: string;
     scope: string;
     subject: string;
   }) {
@@ -346,30 +347,34 @@ export default class Oauth {
 
     // given client exists
     if (client) {
-      // only personal client allowed
-      if (client.personal) {
-        /**
-         * Save access token data
-         */
-        const tokenData = await client.newAccessToken({
-          req: options.req,
-          oauthContext: oauth.context,
-          grant: "password",
-          scope: options.scope,
-          subject: options.subject,
-        });
+      // secret valid
+      if (client.secretKey !== options.clientSecret) {
+        throw new Error("The client secret does not match.");
+      }
 
-        return {
-          access_token: tokenData.token,
-          token_type: oauth.context.tokenType,
-          expires_in: tokenData.accessTokenExpireIn,
-          refresh_token: tokenData.refreshToken,
-        } as IToken;
-      } else {
+      // only personal client allowed
+      if (!client.personal) {
         throw new Error(
-          "Only personal client can be used to generate personal token"
+          "Only personal client can be used to generate personal access token."
         );
       }
+      /**
+       * Save access token data
+       */
+      const tokenData = await client.newAccessToken({
+        req: options.req,
+        oauthContext: oauth.context,
+        grant: "password",
+        scope: options.scope,
+        subject: options.subject,
+      });
+
+      return {
+        access_token: tokenData.token,
+        token_type: oauth.context.tokenType,
+        expires_in: tokenData.accessTokenExpireIn,
+        refresh_token: tokenData.refreshToken,
+      } as IToken;
     } else {
       console.error(`Client \`${options.clientId}\` not found.`);
     }
