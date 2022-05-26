@@ -71,7 +71,7 @@
   },
   "peerDependencies": {
     "@noreajs/common": ">= 2.0.0",
-    "@noreajs/mongoose": ">= 0.2.7",
+    "@noreajs/mongoose": ">= 0.2.9-0",
     "@types/express": "^4.17.6",
     "@types/express-session": "^1.17.0",
     "axios": "^0.21.1",
