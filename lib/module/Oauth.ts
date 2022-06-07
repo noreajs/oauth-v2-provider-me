@@ -5,10 +5,11 @@ import session from "express-session";
 import jwt from "jsonwebtoken";
 import HttpStatus from "./helpers/HttpStatus";
 import { IJwtTokenPayload } from "./interfaces/IJwt";
+import IOauthAuthorizeOptions from "./interfaces/IOauthAuthorizeOptions";
 import { IOauthContext } from "./interfaces/IOauthContext";
 import IOauthInitMethodParams from "./interfaces/IOauthInitMethodParams";
 import IToken from "./interfaces/IToken";
-import OauthAccessToken from "./models/OauthAccessToken";
+import OauthAccessToken, { IOauthAccessToken } from "./models/OauthAccessToken";
 import OauthClient, { OauthClientGrantType } from "./models/OauthClient";
 import OauthContext from "./OauthContext";
 import oauthRoutes from "./routes/oauth.routes";
@@ -184,7 +185,8 @@ export default class Oauth {
     token: string,
     success: (
       userId: string,
-      lookupData?: any
+      lookupData?: any,
+      grant?: Exclude<OauthClientGrantType, "refresh_token">
     ) => Promise<Response<any> | void> | Response<any> | void,
     error: (
       reason: string,
@@ -205,7 +207,8 @@ export default class Oauth {
         }) as IJwtTokenPayload;
 
         // load access token
-        const accessToken = await OauthAccessToken.findById(tokenData.jti);
+        const accessToken: IOauthAccessToken | null =
+          await OauthAccessToken.findById(tokenData.jti);
 
         // access token must exist localy
         if (accessToken) {
@@ -234,10 +237,18 @@ export default class Oauth {
               }
 
               // the user can access to the resource
-              return success(accessToken.userId, user);
+              return success(
+                accessToken.userId,
+                user,
+                accessToken.grant as any
+              );
             } else {
               // the user can access to the resource
-              return success(accessToken.userId, user);
+              return success(
+                accessToken.userId,
+                user,
+                accessToken.grant as any
+              );
             }
           }
         } else {
@@ -257,9 +268,29 @@ export default class Oauth {
 
   /**
    * Validate user access token
-   * @param scope scope needed - Optional
+   * @param options scope or options - Optional
    */
-  static authorize(scope?: string) {
+  static authorize(options?: IOauthAuthorizeOptions) {
+    // get scope
+    const scope = typeof options === "string" ? options : options?.scope;
+
+    // get grants
+    const grants = (() => {
+      if (options !== null && options !== undefined) {
+        if (typeof options !== "string") {
+          if (typeof options.grant === "string") {
+            return [options.grant];
+          } else {
+            return Array.isArray(options.grant) ? options.grant : undefined;
+          }
+        } else {
+          return undefined;
+        }
+      } else {
+        return undefined;
+      }
+    })();
+
     return async (req: Request, res: Response, next: NextFunction) => {
       // get auth instance
       const oauth = Oauth.getInstance();
@@ -280,10 +311,24 @@ export default class Oauth {
               // verify the token
               return await Oauth.verifyToken(
                 parts[1],
-                (_userId, user) => {
+                (_userId, user, tokenGrant) => {
                   res.locals.user = user;
-                  // continue
-                  return next();
+
+                  if (grants && tokenGrant) {
+                    if (grants.includes(tokenGrant)) {
+                      // continue
+                      return next();
+                    } else {
+                      return res.status(HttpStatus.Unauthorized).json({
+                        message: `Only "${grants.join(", ")}"  ${
+                          grants.length === 1 ? "grant is" : "grants are"
+                        } allowed`,
+                      });
+                    }
+                  } else {
+                    // continue
+                    return next();
+                  }
                 },
                 (reason: string, authError: boolean) => {
                   if (authError) {
