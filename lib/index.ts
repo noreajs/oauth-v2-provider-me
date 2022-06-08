@@ -42,3 +42,5 @@ export {
   default as OauthRefreshToken,
 } from "./module/models/OauthRefreshToken";
 export { IOauthScope, default as OauthScope } from "./module/models/OauthScope";
+
+export type { default as IToken } from "./module/interfaces/IToken";
