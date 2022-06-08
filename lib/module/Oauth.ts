@@ -281,7 +281,9 @@ export default class Oauth {
           if (typeof options.grant === "string") {
             return [options.grant];
           } else {
-            return Array.isArray(options.grant) ? options.grant : undefined;
+            return Array.isArray(options.grant) && options.grant.length !== 0
+              ? options.grant
+              : undefined;
           }
         } else {
           return undefined;
