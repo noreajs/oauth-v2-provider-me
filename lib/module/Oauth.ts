@@ -8,6 +8,7 @@ import { IJwtTokenPayload } from "./interfaces/IJwt";
 import IOauthAuthorizeOptions from "./interfaces/IOauthAuthorizeOptions";
 import { IOauthContext } from "./interfaces/IOauthContext";
 import IOauthInitMethodParams from "./interfaces/IOauthInitMethodParams";
+import IOauthOptionalAuthorizeOptions from "./interfaces/IOauthOptionalAuthorizeOptions";
 import IToken from "./interfaces/IToken";
 import OauthAccessToken, { IOauthAccessToken } from "./models/OauthAccessToken";
 import OauthClient, { OauthClientGrantType } from "./models/OauthClient";
@@ -309,6 +310,7 @@ export default class Oauth {
           if (authorization.startsWith(oauthContext.tokenType)) {
             // token parts
             const parts = authorization.split(" ");
+
             try {
               // verify the token
               return await Oauth.verifyToken(
@@ -322,7 +324,7 @@ export default class Oauth {
                       return next();
                     } else {
                       return res.status(HttpStatus.Unauthorized).json({
-                        message: `Only "${grants.join(", ")}"  ${
+                        message: `Only \`${grants.join(", ")}\` ${
                           grants.length === 1 ? "grant is" : "grants are"
                         } allowed`,
                       });
@@ -347,6 +349,7 @@ export default class Oauth {
             } catch (error) {
               return res.status(HttpStatus.Unauthorized).json({
                 message: Oauth.ERRORS.TOKEN_EXPIRED,
+                error,
               });
             }
           } else {
@@ -358,6 +361,128 @@ export default class Oauth {
           return res.status(HttpStatus.Unauthorized).json({
             message: Oauth.ERRORS.AUTH_HEADER_REQUIRED,
           });
+        }
+      } else {
+        console.warn(
+          "The Oauth.context static property is not defined. Make sure you have initialized the Oauth package as described in the documentation."
+        );
+        // the user can access to the resource
+        return next();
+      }
+    };
+  }
+
+  /**
+   * Validate user access token if exists
+   * @param options scope or options - Optional
+   */
+  static optionalAuthorize(options?: IOauthOptionalAuthorizeOptions) {
+    // get scope
+    const scope = typeof options === "string" ? options : options?.scope;
+
+    // get grants
+    const grants = (() => {
+      if (options !== null && options !== undefined) {
+        if (typeof options !== "string") {
+          if (typeof options.grant === "string") {
+            return [options.grant];
+          } else {
+            return Array.isArray(options.grant) && options.grant.length !== 0
+              ? options.grant
+              : undefined;
+          }
+        } else {
+          return undefined;
+        }
+      } else {
+        return undefined;
+      }
+    })();
+
+    return async (req: Request, res: Response, next: NextFunction) => {
+      // get auth instance
+      const oauth = Oauth.getInstance();
+      // check instance existance
+      if (oauth) {
+        // get oauth context
+        const oauthContext = oauth.context;
+        // authorization server
+        const authorization =
+          req.headers["authorization"] ?? req.headers["proxy-authorization"];
+        // authorization required
+        if (authorization) {
+          // bearer token required
+          if (authorization.startsWith(oauthContext.tokenType)) {
+            // token parts
+            const parts = authorization.split(" ");
+            try {
+              // verify the token
+              return await Oauth.verifyToken(
+                parts[1],
+                (_userId, user, tokenGrant) => {
+                  res.locals.user = user;
+
+                  if (grants && tokenGrant) {
+                    if (grants.includes(tokenGrant)) {
+                      // continue
+                      return next();
+                    } else {
+                      return res.status(HttpStatus.Unauthorized).json({
+                        message: `Only "${grants.join(", ")}"  ${
+                          grants.length === 1 ? "grant is" : "grants are"
+                        } allowed`,
+                      });
+                    }
+                  } else {
+                    // continue
+                    return next();
+                  }
+                },
+                (reason: string, authError: boolean) => {
+                  if (
+                    authError &&
+                    typeof options !== "string" &&
+                    options?.bypassTokenVerificationError === false
+                  ) {
+                    return res.status(HttpStatus.Unauthorized).json({
+                      message: reason,
+                    });
+                  } else {
+                    // continue
+                    return next();
+                  }
+                },
+                scope
+              );
+            } catch (error) {
+              if (
+                typeof options !== "string" &&
+                options?.tokenExpirationCheck === true
+              ) {
+                return res.status(HttpStatus.Unauthorized).json({
+                  message: Oauth.ERRORS.TOKEN_EXPIRED,
+                });
+              } else {
+                // who said that there is a limit you can't reach?... continue my friend!
+                return next();
+              }
+            }
+          } else {
+            if (
+              typeof options !== "string" &&
+              options?.tokenTypeCheck === true
+            ) {
+              return res.status(HttpStatus.Unauthorized).json({
+                message: `${oauthContext.tokenType} Token type required`,
+              });
+            } else {
+              // continue to heaven
+              return next();
+            }
+          }
+        } else {
+          // continue
+          return next();
         }
       } else {
         console.warn(
