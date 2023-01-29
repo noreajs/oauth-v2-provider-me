@@ -31,12 +31,7 @@ class AuthorizationController extends OauthController {
         : path.join(...[__dirname, "..", "views", "login", "login.ejs"]);
 
     if (req.session) {
-      const payload = {
-        oauthAuthCodeId: (req.session as any).oauthAuthCodeId,
-        error: (req.session as any).error,
-        inputs: (req.session as any).inputs,
-        order: req.query.order,
-      } as {
+      const payload: {
         oauthAuthCodeId: string;
         order?: "cancel";
         inputs?: {
@@ -48,6 +43,11 @@ class AuthorizationController extends OauthController {
             [key: string]: string;
           };
         };
+      } = {
+        oauthAuthCodeId: (req.session as any).oauthAuthCodeId,
+        error: (req.session as any).error,
+        inputs: (req.session as any).inputs,
+        order: req.query.order as any,
       };
 
       // load auth code
@@ -81,12 +81,10 @@ class AuthorizationController extends OauthController {
             csrfToken: req.csrfToken(),
             providerName: this.oauthContext.providerName,
             currentYear: new Date().getFullYear(),
-            formAction: `${UrlHelper.getFullUrl(req)}/${
-              AuthorizationController.OAUTH_AUTHORIZE_PATH
-            }`,
-            cancelUrl: `${UrlHelper.getFullUrl(req)}/${
-              AuthorizationController.OAUTH_DIALOG_PATH
-            }?order=cancel`,
+            formAction: `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_AUTHORIZE_PATH
+              }`,
+            cancelUrl: `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
+              }?order=cancel`,
             error: payload.error,
             inputs: payload.inputs ?? {
               username: "",
@@ -103,9 +101,8 @@ class AuthorizationController extends OauthController {
               scope: oauthCode.client.scope,
             } as Partial<IOauthClient>,
             strategies: OauthStrategy.renderOptions((identifier: string) => {
-              return `${UrlHelper.getFullUrl(req)}/${
-                AuthorizationController.OAUTH_STRATEGY_PATH
-              }`.replace(":identifier", identifier);
+              return `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_STRATEGY_PATH
+                }`.replace(":identifier", identifier);
             }, this.oauthContext.strategies),
           });
         }
@@ -187,9 +184,8 @@ class AuthorizationController extends OauthController {
         if (req.query.strategy && `${req.query.strategy}`.length !== 0) {
           return res.redirect(
             HttpStatus.TemporaryRedirect,
-            `${UrlHelper.getFullUrl(req)}/${
-              AuthorizationController.OAUTH_STRATEGY_PATH
-            }`.replace(":identifier", req.query.strategy as string)
+            `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_STRATEGY_PATH
+              }`.replace(":identifier", req.query.strategy as string)
           );
         } else {
           // current user
@@ -208,8 +204,7 @@ class AuthorizationController extends OauthController {
           } else {
             return res.redirect(
               HttpStatus.TemporaryRedirect,
-              `${UrlHelper.getFullUrl(req)}/${
-                AuthorizationController.OAUTH_DIALOG_PATH
+              `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
               }`
             );
           }
@@ -258,9 +253,8 @@ class AuthorizationController extends OauthController {
           // set session
           if (req.session) {
             (req.session as any).error = {
-              message: `${requiredFields.join(", ")} ${
-                requiredFields.length > 1 ? "are" : "is"
-              } required.`,
+              message: `${requiredFields.join(", ")} ${requiredFields.length > 1 ? "are" : "is"
+                } required.`,
             };
             (req.session as any).inputs = formData;
           } else {
@@ -269,8 +263,7 @@ class AuthorizationController extends OauthController {
 
           return res.redirect(
             HttpStatus.MovedPermanently,
-            `${UrlHelper.getFullUrl(req)}/${
-              AuthorizationController.OAUTH_DIALOG_PATH
+            `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
             }`
           );
         }
@@ -293,8 +286,7 @@ class AuthorizationController extends OauthController {
 
           return res.redirect(
             HttpStatus.MovedPermanently,
-            `${UrlHelper.getFullUrl(req)}/${
-              AuthorizationController.OAUTH_DIALOG_PATH
+            `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
             }`
           );
         }

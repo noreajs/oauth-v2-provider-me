@@ -7,20 +7,12 @@ import IEndUserAuthData from "./interfaces/IEndUserAuthData";
 import { JwtTokenReservedClaimsType } from "./interfaces/IJwt";
 import { RequestHandler } from "express";
 import { OauthStrategy } from "..";
+import { Algorithm } from "jsonwebtoken";
 
 export default class OauthContext {
   providerName: string;
   secretKey: string;
-  jwtAlgorithm:
-    | "HS256"
-    | "HS384"
-    | "HS512"
-    | "RS256"
-    | "RS384"
-    | "RS512"
-    | "ES256"
-    | "ES384"
-    | "ES512";
+  jwtAlgorithm: Algorithm;
   authenticationLogic: (
     username: string,
     password: string

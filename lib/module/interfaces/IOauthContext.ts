@@ -2,6 +2,7 @@ import IEndUserAuthData from "./IEndUserAuthData";
 import { JwtTokenReservedClaimsType } from "./IJwt";
 import { RequestHandler } from "express";
 import OauthStrategy from "../strategy/OauthStrategy";
+import { Algorithm } from "jsonwebtoken";
 
 export type SubLookupFuncType = {
   (sub: string): any | Promise<any>;
@@ -44,16 +45,7 @@ export interface IOauthContext {
   /**
    * Jwt encrypt algorithm
    */
-  jwtAlgorithm?:
-    | "HS256"
-    | "HS384"
-    | "HS512"
-    | "RS256"
-    | "RS384"
-    | "RS512"
-    | "ES256"
-    | "ES384"
-    | "ES512";
+  jwtAlgorithm?: Algorithm;
 
   /**
    * Authentification logic
