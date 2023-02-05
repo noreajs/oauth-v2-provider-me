@@ -9,11 +9,8 @@ export interface IOauthAuthCode extends Document {
   userId: string;
   authorizationCode: string;
   client: IOauthClient;
-  state?: string;
-  strategyState?: string;
   scope: string;
   responseType: IAuthorizationResponseType;
-  codeChallenge?: string;
   codeChallengeMethod?: string;
   redirectUri: string;
   userAgent: string;
@@ -52,12 +49,6 @@ export default mongooseModel<IOauthAuthCode>({
         required: [true, "The oauth client is required."],
         autopopulate: true,
       },
-      state: {
-        type: Schema.Types.String,
-      },
-      strategyState: {
-        type: Schema.Types.String,
-      },
       scope: {
         type: Schema.Types.String,
       },
@@ -65,9 +56,6 @@ export default mongooseModel<IOauthAuthCode>({
         type: Schema.Types.String,
         enum: ["code", "token"],
         required: [true, "The reponse type is required."],
-      },
-      codeChallenge: {
-        type: Schema.Types.String,
       },
       codeChallengeMethod: {
         type: Schema.Types.String,

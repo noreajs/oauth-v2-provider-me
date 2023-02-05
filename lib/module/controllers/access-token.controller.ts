@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
-import ITokenRequest from "../interfaces/ITokenRequest";
 import OauthHelper from "../helpers/OauthHelper";
-import OauthClient from "../models/OauthClient";
+import RevokeTokenHelper from "../helpers/RevokeTokenHelper";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
-import OauthController from "./oauth.controller";
+import ITokenRequest from "../interfaces/ITokenRequest";
 import ITokenRevokeRequest from "../interfaces/ITokenRevokeRequest";
-import RevokeTokenHelper from "../helpers/RevokeTokenHelper";
+import OauthClient, { IOauthClient } from "../models/OauthClient";
+import OauthController from "./oauth.controller";
 
 class AccessTokenController extends OauthController {
   /**
@@ -39,7 +39,7 @@ class AccessTokenController extends OauthController {
       }
 
       // load client
-      const client = await OauthClient.findOne({ clientId: data.client_id });
+      const client = await OauthClient.findOne<IOauthClient>({ clientId: data.client_id });
 
       /**
        * Client has to exist

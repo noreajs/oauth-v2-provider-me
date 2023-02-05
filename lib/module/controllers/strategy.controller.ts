@@ -7,6 +7,7 @@ import OauthHelper from "../helpers/OauthHelper";
 import UrlHelper from "../helpers/UrlHelper";
 import ISessionCurrentData from "../interfaces/ISessionCurrentData";
 import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
+import OauthContext from "../OauthContext";
 import OauthStrategy from "../strategy/OauthStrategy";
 import AuthorizationController from "./authorization.controller";
 import OauthController from "./oauth.controller";
@@ -31,7 +32,7 @@ class StrategyController extends OauthController {
       /**
        * Load session auth code
        */
-      const authCode = await OauthAuthCode.findById(
+      const authCode = await OauthAuthCode.findById<IOauthAuthCode>(
         (req.session as any).oauthAuthCodeId
       );
 
@@ -43,22 +44,17 @@ class StrategyController extends OauthController {
            * Strategy state
            * -------------------
            */
+          const strategyState = uuidV4();
           // set strategy state
-          authCode.strategyState = uuidV4();
-          // save change
-          await authCode.save();
+          (req.session as any).strategyState = strategyState;
 
           switch (strategy.options.grant) {
             case "authorization_code": {
               // get the redirection uri
               const redirectUri =
                 strategy.options.client.authorizationCode.getAuthUri({
-                  state: authCode.strategyState,
-                  callbackUrl: `${UrlHelper.getFullUrl(req)}/${
-                    StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
-                  }`.replace(":identifier", strategy.options.identifier),
+                  state: strategyState
                 });
-
               // redirect
               return res.redirect(HttpStatus.TemporaryRedirect, redirectUri);
             }
@@ -67,10 +63,7 @@ class StrategyController extends OauthController {
               // get the redirection uri
               const redirectUri =
                 strategy.options.client.authorizationCodePKCE.getAuthUri({
-                  state: authCode.strategyState,
-                  callbackUrl: `${UrlHelper.getFullUrl(req)}/${
-                    StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
-                  }`.replace(":identifier", strategy.options.identifier),
+                  state: strategyState
                 });
 
               // redirect
@@ -80,10 +73,7 @@ class StrategyController extends OauthController {
             case "implicit": {
               // get redirection uri
               const redirectUri = strategy.options.client.implicit.getAuthUri({
-                state: authCode.strategyState,
-                callbackUrl: `${UrlHelper.getFullUrl(req)}/${
-                  StrategyController.OAUTH_STRATEGY_CALLBACK_PATH
-                }`.replace(":identifier", strategy.options.identifier),
+                state: strategyState
               });
 
               // redirect
@@ -97,7 +87,7 @@ class StrategyController extends OauthController {
                 {
                   error: "access_denied",
                   error_description: `The grant "${strategy.options.grant}" doesn't support redirection.`,
-                  state: authCode.state,
+                  state: req.cookies?.[this.oauthContext.stateCookieVariableName],
                 },
                 authCode.redirectUri
               );
@@ -105,8 +95,8 @@ class StrategyController extends OauthController {
         } else {
           try {
             // destroy the session
-            (req.session as any).destroy(() => {});
-          } catch (error) {}
+            (req.session as any).destroy(() => { });
+          } catch (error) { }
 
           return OauthHelper.throwError(req, res, {
             error: "access_denied",
@@ -151,7 +141,7 @@ class StrategyController extends OauthController {
       /**
        * Load session auth code
        */
-      const authCode = await OauthAuthCode.findById(
+      const authCode = await OauthAuthCode.findById<IOauthAuthCode>(
         (req.session as any).oauthAuthCodeId
       );
 
@@ -161,28 +151,29 @@ class StrategyController extends OauthController {
         if (authCode) {
           switch (strategy.options.grant) {
             case "password":
-              strategy.options.client.password.getToken({
-                username: req.body.username,
-                password: req.body.password,
-                onSuccess: async () => {
-                  return this.lookupAndRedirect(req, res, authCode, strategy);
-                },
-                onError: (error: any) => {
-                  return OauthHelper.throwError(
-                    req,
-                    res,
-                    {
-                      error: "access_denied",
-                      error_description:
-                        error.message ??
-                        `Failed to get ${strategy.options.identifier} token.`,
-                      state: authCode.state,
-                    },
-                    authCode.redirectUri
-                  );
-                },
-              });
-              break;
+              return new Promise(async (resolve, reject) => {
+                await strategy.options.client.password.getToken({
+                  username: req.body.username,
+                  password: req.body.password,
+                  onSuccess: async () => {
+                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  },
+                  onError: (error: any) => {
+                    reject(OauthHelper.throwError(
+                      req,
+                      res,
+                      {
+                        error: "access_denied",
+                        error_description:
+                          error.message ??
+                          `Failed to get ${strategy.options.identifier} token.`,
+                        state: req.cookies?.[this.oauthContext.stateCookieVariableName],
+                      },
+                      authCode.redirectUri
+                    ));
+                  },
+                });
+              })
 
             default:
               return OauthHelper.throwError(
@@ -191,7 +182,7 @@ class StrategyController extends OauthController {
                 {
                   error: "access_denied",
                   error_description: `The grant "${strategy.options.grant}" doesn't support redirection.`,
-                  state: authCode.state,
+                  state: req.cookies?.[this.oauthContext.stateCookieVariableName],
                 },
                 authCode.redirectUri
               );
@@ -231,9 +222,9 @@ class StrategyController extends OauthController {
     /**
      * Load auth code
      */
-    const authCode = await OauthAuthCode.findOne({
-      strategyState: req.query.state as any,
-    });
+    const authCode = await OauthAuthCode.findById<IOauthAuthCode>(
+      (req.session as any).oauthAuthCodeId
+    );
 
     // strategy exits
     if (strategy) {
@@ -248,67 +239,69 @@ class StrategyController extends OauthController {
           return OauthHelper.throwError(
             req,
             res,
-            Obj.merge(req.query, { state: authCode.state }, "right"),
+            Obj.merge(req.query, { state: req.cookies[this.oauthContext.stateCookieVariableName] }, "right"),
             authCode.redirectUri
           );
         } else {
           switch (strategy.options.grant) {
             case "authorization_code":
-              await strategy.options.client.authorizationCode.getToken({
-                state: authCode.strategyState,
-                callbackUrl: req.originalUrl,
-                onSuccess: async (_token: string) => {
-                  return this.lookupAndRedirect(req, res, authCode, strategy);
-                },
-                onError: (error: any) => {
-                  return OauthHelper.throwError(
-                    req,
-                    res,
-                    {
-                      error: "access_denied",
-                      error_description:
-                        error.message ??
-                        `Failed to get ${strategy.options.identifier} token.`,
-                      state: authCode.state,
-                    },
-                    authCode.redirectUri
-                  );
-                },
-              });
-              break;
+              return new Promise(async (resolve, reject) => {
+                await strategy.options.client.authorizationCode.getToken({
+                  state: (req.session as any)?.strategyState,
+                  callbackUrl: req.originalUrl,
+                  onSuccess: async (_token: string) => {
+                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  },
+                  onError: (error: any) => {
+                    reject(OauthHelper.throwError(
+                      req,
+                      res,
+                      {
+                        error: "access_denied",
+                        error_description:
+                          error.message ??
+                          `Failed to get ${strategy.options.identifier} token.`,
+                        state: req.cookies[this.oauthContext.stateCookieVariableName],
+                      },
+                      authCode.redirectUri
+                    ))
+                  },
+                });
+              })
 
             case "authorization_code_pkce":
-              await strategy.options.client.authorizationCodePKCE.getToken({
-                state: authCode.strategyState,
-                callbackUrl: req.originalUrl,
-                onSuccess: () => {
-                  return this.lookupAndRedirect(req, res, authCode, strategy);
-                },
-                onError: (error: any) => {
-                  return OauthHelper.throwError(
-                    req,
-                    res,
-                    {
-                      error: "access_denied",
-                      error_description:
-                        error.message ??
-                        `Failed to get ${strategy.options.identifier} token.`,
-                      state: authCode.state,
-                    },
-                    authCode.redirectUri
-                  );
-                },
-              });
-              break;
+              return new Promise(async (resolve, reject) => {
+                await strategy.options.client.authorizationCodePKCE.getToken({
+                  state: (req.session as any)?.strategyState,
+                  callbackUrl: req.originalUrl,
+                  onSuccess: async () => {
+                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  },
+                  onError: (error: any) => {
+                    reject(OauthHelper.throwError(
+                      req,
+                      res,
+                      {
+                        error: "access_denied",
+                        error_description:
+                          error.message ??
+                          `Failed to get ${strategy.options.identifier} token.`,
+                        state: req.cookies[this.oauthContext.stateCookieVariableName],
+                      },
+                      authCode.redirectUri
+                    ))
+                  },
+                });
+              })
 
             case "implicit":
               // extract token
               strategy.options.client.implicit.getToken(
                 req.originalUrl,
-                authCode.strategyState
+                (req.session as any)?.strategyState
               );
 
-              return this.lookupAndRedirect(req, res, authCode, strategy);
+              return this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy);
 
             default:
               return OauthHelper.throwError(
@@ -316,8 +309,8 @@ class StrategyController extends OauthController {
                 res,
                 {
                   error: "access_denied",
-                  error_description: `The grant "${strategy.options.grant}" doesn't support redirection.`,
-                  state: authCode.state,
+                  error_description: `The grant "${strategy.options.grant} " doesn't support redirection.`,
+                  state: req.cookies[this.oauthContext.stateCookieVariableName],
                 },
                 authCode.redirectUri
               );
@@ -355,6 +348,7 @@ class StrategyController extends OauthController {
    * @param strategy strategy
    */
   private async lookupAndRedirect(
+    context: OauthContext,
     req: Request,
     res: Response,
     authCode: IOauthAuthCode,
@@ -387,16 +381,15 @@ class StrategyController extends OauthController {
         scope: authCode.scope,
         response_type: authCode.responseType,
         redirect_uri: authCode.redirectUri,
-        state: authCode.state,
+        state: req.cookies[context.stateCookieVariableName],
         code_challenge_method: authCode.codeChallengeMethod,
-        code_challenge: authCode.codeChallenge,
+        code_challenge: req.cookies[context.codeChallengeCookieVariableName],
       };
 
       return res.redirect(
         HttpStatus.MovedPermanently,
         injectQueryParams(
-          `${UrlHelper.getFullUrl(req)}/${
-            AuthorizationController.OAUTH_AUTHORIZE_PATH
+          `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_AUTHORIZE_PATH
           }`,
           Obj.cleanWithEmpty(queryParams)
         )
@@ -406,12 +399,12 @@ class StrategyController extends OauthController {
         req,
         res,
         Obj.merge(
-          Obj.extend({ data: req.query, omits: ["code"] }),
+          Obj.extend({ data: req.query, omits: ["code", "state"] }),
           {
+            state: req.cookies?.[this.oauthContext.stateCookieVariableName],
             error: "access_denied",
-            error_description: `No account is associated with your ${`${
-              strategy.options.providerName ?? strategy.options.identifier
-            }`.toLowerCase()} profile.`,
+            error_description: `No account is associated with your ${`${strategy.options.providerName ?? strategy.options.identifier
+              }`.toLowerCase()} profile.`,
           },
           "left"
         ),

@@ -1,9 +1,10 @@
+import cookieParser from "cookie-parser";
 import { Application, Router } from "express";
 import oauthController from "../controllers/oauth.controller";
-import oauthClientRoutes from "./oauth-client.routes";
-import authorizationRoutes from "./authorization.routes";
-import accessTokenRoutes from "./access-token.routes";
 import OauthContext from "../OauthContext";
+import accessTokenRoutes from "./access-token.routes";
+import authorizationRoutes from "./authorization.routes";
+import oauthClientRoutes from "./oauth-client.routes";
 import oauthScopeRoutes from "./oauth-scope.routes";
 import purgeRoutes from "./purge.routes";
 import strategyRoutes from "./strategy.routes";
@@ -15,6 +16,9 @@ export default (app: Application, oauthContext: OauthContext) => {
   const oauthModule = Router({
     mergeParams: true,
   });
+
+  // cookie parser injection
+  oauthModule.use(cookieParser())
 
   /**
    * Clients routes

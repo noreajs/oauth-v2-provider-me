@@ -3,6 +3,7 @@ import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import OauthClient from "../models/OauthClient";
 import OauthHelper from "../helpers/OauthHelper";
 import { Obj } from "@noreajs/common";
+import { serializeError } from "serialize-error";
 
 class AuthorizationMiddleware {
   /**
@@ -170,7 +171,7 @@ class AuthorizationMiddleware {
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
           state: data.state,
-          extra: e,
+          extra: serializeError(e),
         },
         data.redirect_uri
       );

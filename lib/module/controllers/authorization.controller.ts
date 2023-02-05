@@ -1,8 +1,11 @@
 import { Obj } from "@noreajs/common";
+import { serialize } from "cookie";
 import { Request, Response } from "express";
 import moment from "moment";
 import path from "path";
+import { serializeError } from "serialize-error";
 import AuthorizationHelper from "../helpers/AuthorizationHelper";
+import HttpStatus from "../helpers/HttpStatus";
 import OauthHelper from "../helpers/OauthHelper";
 import UrlHelper from "../helpers/UrlHelper";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
@@ -11,18 +14,158 @@ import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import { IOauthClient } from "../models/OauthClient";
 import OauthStrategy from "../strategy/OauthStrategy";
 import OauthController from "./oauth.controller";
-import HttpStatus from "../helpers/HttpStatus";
 
 class AuthorizationController extends OauthController {
   static OAUTH_DIALOG_PATH = "oauth/v2/dialog";
   static OAUTH_AUTHORIZE_PATH = "oauth/v2/authorize";
+  static OAUTH_AUTHORIZE_SUBMIT_PATH = "oauth/v2/authorize-submit";
   static OAUTH_STRATEGY_PATH = "oauth/v2/strategy/:identifier";
 
   /**
-   * Get authorization dialog
+   * Get authorization token
    * @param req request
    * @param res response
    */
+  authorize = async (req: Request, res: Response) => {
+    // get request query data
+    const data = res.locals.data as IAuthCodeRequest;
+    // get client
+    const client = res.locals.client as IOauthClient;
+
+    try {
+      /**
+       * Response type
+       * *****************************
+       */
+      if (!["code", "token"].includes(data.response_type)) {
+
+        return OauthHelper.throwError(
+          req,
+          res,
+          {
+            error: "unsupported_response_type",
+            error_description:
+              "Expected value for response_type are 'token' and 'code'",
+            state: data.state,
+          },
+          data.redirect_uri
+        );
+      }
+
+      // create oauth code
+      const oauthCode = new OauthAuthCode({
+        client: client._id,
+        state: data.state,
+        scope: data.scope,
+        responseType: data.response_type,
+        codeChallengeMethod: data.code_challenge_method,
+        redirectUri: data.redirect_uri,
+        expiresAt: moment()
+          .add(this.oauthContext.authorizationCodeLifeTime, "seconds")
+          .toDate(),
+      } as Partial<IOauthAuthCode>);
+
+      // save codes
+      await oauthCode.save();
+
+      // session exists
+      if (req.session) {
+        // clear session
+        (req.session as any).oauthAuthCodeId = oauthCode._id;
+
+        /**
+         * Strategy shortcut
+         * ------------------------
+         */
+        if (req.query.strategy && `${req.query.strategy}`.length !== 0) {
+          const stateCookieStr = data.state ? serialize(this.oauthContext.stateCookieVariableName, data.state, {
+            path: '/',
+            sameSite: 'lax',
+            priority: 'high',
+            maxAge: 60
+          }) : undefined
+
+          const codeChallengeCookieStr = data.code_challenge ? serialize(this.oauthContext.codeChallengeCookieVariableName, data.code_challenge, {
+            path: '/',
+            sameSite: 'lax',
+            priority: 'high',
+            maxAge: 60
+          }) : undefined
+
+          if (stateCookieStr)
+            res.setHeader('Set-Cookie', stateCookieStr)
+
+          if (codeChallengeCookieStr)
+            res.setHeader('Set-Cookie', codeChallengeCookieStr)
+
+          return res.redirect(
+            HttpStatus.TemporaryRedirect,
+            `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_STRATEGY_PATH
+              }`.replace(":identifier", req.query.strategy as string)
+          );
+        } else {
+          // current user
+          const currentData: ISessionCurrentData = (req.session as any)
+            .currentData;
+
+          if (currentData) {
+            // redirect authorization code
+            return await AuthorizationHelper.run({
+              req,
+              res,
+              oauthContext: this.oauthContext,
+              oauthCodeId: oauthCode._id,
+              sessionCurrentData: currentData,
+              state: data.state
+            });
+          } else {
+
+            const stateCookieStr = data.state ? serialize(this.oauthContext.stateCookieVariableName, data.state, {
+              path: '/',
+              sameSite: 'lax',
+              priority: 'high',
+              maxAge: 60
+            }) : undefined
+
+            const codeChallengeCookieStr = data.code_challenge ? serialize(this.oauthContext.codeChallengeCookieVariableName, data.code_challenge, {
+              path: '/',
+              sameSite: 'lax',
+              priority: 'high',
+              maxAge: 60
+            }) : undefined
+
+            if (stateCookieStr)
+              res.setHeader('Set-Cookie', stateCookieStr)
+
+            if (codeChallengeCookieStr)
+              res.setHeader('Set-Cookie', codeChallengeCookieStr)
+
+            return res.redirect(
+              HttpStatus.TemporaryRedirect,
+              `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
+              }`
+            );
+          }
+        }
+      } else {
+        throw Error("No session defined. Express session required.");
+      }
+    } catch (e) {
+      return OauthHelper.throwError(req, res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+        state: data.state,
+        extra: serializeError(e),
+      });
+    }
+  };
+
+  /**
+ * Get authorization dialog
+ * @param req request
+ * @param res response
+ */
   dialog = async (req: Request, res: Response) => {
     // login path
     const authLoginPath =
@@ -51,7 +194,7 @@ class AuthorizationController extends OauthController {
       };
 
       // load auth code
-      const oauthCode = await OauthAuthCode.findById(payload.oauthAuthCodeId);
+      const oauthCode = await OauthAuthCode.findById<IOauthAuthCode>(payload.oauthAuthCodeId);
 
       // load scopes
       if (oauthCode) {
@@ -69,7 +212,7 @@ class AuthorizationController extends OauthController {
             {
               error: "access_denied",
               error_description: "The resource owner denied the request.",
-              state: oauthCode.state,
+              state: req.cookies?.[this.oauthContext.stateCookieVariableName],
             },
             oauthCode.redirectUri
           );
@@ -81,7 +224,7 @@ class AuthorizationController extends OauthController {
             csrfToken: req.csrfToken(),
             providerName: this.oauthContext.providerName,
             currentYear: new Date().getFullYear(),
-            formAction: `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_AUTHORIZE_PATH
+            formAction: `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_AUTHORIZE_SUBMIT_PATH
               }`,
             cancelUrl: `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
               }?order=cancel`,
@@ -126,109 +269,13 @@ class AuthorizationController extends OauthController {
   };
 
   /**
-   * Get authorization token
-   * @param req request
-   * @param res response
-   */
-  authorize = async (req: Request, res: Response) => {
-    // get request query data
-    const data = res.locals.data as IAuthCodeRequest;
-    // get client
-    const client = res.locals.client as IOauthClient;
-
-    try {
-      /**
-       * Response type
-       * *****************************
-       */
-      if (!["code", "token"].includes(data.response_type)) {
-        return OauthHelper.throwError(
-          req,
-          res,
-          {
-            error: "unsupported_response_type",
-            error_description:
-              "Expected value for response_type are 'token' and 'code'",
-            state: data.state,
-          },
-          data.redirect_uri
-        );
-      }
-
-      // create oauth code
-      const oauthCode = new OauthAuthCode({
-        client: client._id,
-        state: data.state,
-        scope: data.scope,
-        responseType: data.response_type,
-        codeChallenge: data.code_challenge,
-        codeChallengeMethod: data.code_challenge_method,
-        redirectUri: data.redirect_uri,
-        expiresAt: moment()
-          .add(this.oauthContext.authorizationCodeLifeTime, "seconds")
-          .toDate(),
-      } as Partial<IOauthAuthCode>);
-
-      // save codes
-      await oauthCode.save();
-
-      // session exists
-      if (req.session) {
-        // clear session
-        (req.session as any).oauthAuthCodeId = oauthCode._id;
-
-        /**
-         * Strategy shortcut
-         * ------------------------
-         */
-        if (req.query.strategy && `${req.query.strategy}`.length !== 0) {
-          return res.redirect(
-            HttpStatus.TemporaryRedirect,
-            `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_STRATEGY_PATH
-              }`.replace(":identifier", req.query.strategy as string)
-          );
-        } else {
-          // current user
-          const currentData: ISessionCurrentData = (req.session as any)
-            .currentData;
-
-          if (currentData) {
-            // redirect authorization code
-            return await AuthorizationHelper.run(
-              req,
-              res,
-              this.oauthContext,
-              oauthCode,
-              currentData
-            );
-          } else {
-            return res.redirect(
-              HttpStatus.TemporaryRedirect,
-              `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_DIALOG_PATH
-              }`
-            );
-          }
-        }
-      } else {
-        throw Error("No session defined. Express session required.");
-      }
-    } catch (e) {
-      return OauthHelper.throwError(req, res, {
-        error: "server_error",
-        error_description:
-          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        state: data.state,
-        extra: e,
-      });
-    }
-  };
-
-  /**
    * Authentification of an end-user from dialog view
+   * ------------------------
+   * Handle oauth dialog form submission
    */
   authenticate = async (req: Request, res: Response) => {
     // Form data
-    const formData = req.body as {
+    const formData = req.query as {
       username: string;
       password: string;
     };
@@ -237,7 +284,7 @@ class AuthorizationController extends OauthController {
      * load auth code
      * *****************************************
      */
-    const oauthCode = await OauthAuthCode.findById(
+    const oauthCode = await OauthAuthCode.findById<IOauthAuthCode>(
       (req.session as any)?.oauthAuthCodeId
     );
 
@@ -313,13 +360,16 @@ class AuthorizationController extends OauthController {
         });
 
         return await AuthorizationHelper.run(
-          req,
-          res,
-          this.oauthContext,
-          oauthCode,
           {
-            responseType: oauthCode.responseType,
-            authData: endUserData,
+            req,
+            res,
+            oauthContext: this.oauthContext,
+            oauthCodeId: oauthCode._id,
+            sessionCurrentData: {
+              responseType: oauthCode.responseType,
+              authData: endUserData,
+            },
+            state: req.cookies?.[this.oauthContext.stateCookieVariableName]
           }
         );
       } catch (e) {
@@ -327,7 +377,7 @@ class AuthorizationController extends OauthController {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-          state: oauthCode.state,
+          state: req.cookies?.[this.oauthContext.stateCookieVariableName],
           extra: e,
         });
       }

@@ -16,7 +16,9 @@ export default (module: Router, oauthContext: OauthContext) => {
    */
   module
     .route("/strategy/:identifier")
-    .get([new StrategyController(oauthContext).redirect]);
+    .get([
+      ...oauthMiddleware.verifyCsrfToken(),
+      new StrategyController(oauthContext).redirect]);
 
   /**
    * Oauth strategy authentication (password grant)

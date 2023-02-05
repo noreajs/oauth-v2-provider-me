@@ -2,6 +2,7 @@ import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import moment from "moment";
+import { IJwtTokenPayload } from "../..";
 import IToken from "../interfaces/IToken";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
@@ -9,9 +10,8 @@ import OauthRefreshToken, {
   IOauthRefreshToken
 } from "../models/OauthRefreshToken";
 import OauthContext from "../OauthContext";
-import OauthHelper from "./OauthHelper";
 import HttpStatus from "./HttpStatus";
-import { IJwtTokenPayload } from "../..";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -163,7 +163,10 @@ class TokenGrantRefreshTokenHelper {
         const tokens = await client.newAccessToken({
           grant: oauthRefreshToken.accessToken.grant,
           oauthContext: oauthContext,
-          req: req,
+          req: {
+            host: req.hostname,
+            userAgent: req.headers['user-agent']
+          },
           scope: newAccessTokenScope,
           subject: oauthRefreshToken.accessToken.userId,
         });

@@ -1,20 +1,10 @@
+import { Router } from "express";
 import authorizationController from "../controllers/authorization.controller";
 import authorizationMiddleware from "../middlewares/authorization.middleware";
-import OauthContext from "../OauthContext";
-import { Router } from "express";
 import oauthMiddleware from "../middlewares/oauth.middleware";
+import OauthContext from "../OauthContext";
 
 export default (module: Router, oauthContext: OauthContext) => {
-  /**
-   * Get authorization dialog
-   */
-  module
-    .route("/dialog")
-    .get([
-      ...oauthMiddleware.injectCsrfToken(),
-      new authorizationController(oauthContext).dialog,
-    ]);
-
   /**
    * Authorize
    */
@@ -26,11 +16,21 @@ export default (module: Router, oauthContext: OauthContext) => {
     ]);
 
   /**
+  * Get authorization dialog
+  */
+  module
+    .route("/dialog")
+    .get([
+      ...oauthMiddleware.injectCsrfToken(),
+      new authorizationController(oauthContext).dialog,
+    ]);
+
+  /**
    * Authenticate the user
    */
   module
-    .route("/authorize")
-    .post([
+    .route("/authorize-submit")
+    .get([
       ...oauthMiddleware.verifyCsrfToken(),
       new authorizationController(oauthContext).authenticate,
     ]);

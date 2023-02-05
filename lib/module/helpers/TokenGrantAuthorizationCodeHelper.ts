@@ -1,14 +1,14 @@
-import { Request, Response } from "express";
 import crypto from "crypto";
-import IToken from "../interfaces/IToken";
-import OauthAuthCode from "../models/OauthAuthCode";
+import { Request, Response } from "express";
 import moment from "moment";
-import ITokenRequest from "../interfaces/ITokenRequest";
 import { toASCII } from "punycode";
+import IToken from "../interfaces/IToken";
+import ITokenRequest from "../interfaces/ITokenRequest";
+import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import { IOauthClient } from "../models/OauthClient";
-import OauthHelper from "./OauthHelper";
 import OauthContext from "../OauthContext";
 import HttpStatus from "./HttpStatus";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -34,7 +34,7 @@ class TokenGrantAuthorizationCodeHelper {
        */
 
       // load authoriation token
-      const oauthCode = await OauthAuthCode.findOne({
+      const oauthCode = await OauthAuthCode.findOne<IOauthAuthCode>({
         client: client._id,
         authorizationCode: data.code,
       });
@@ -63,10 +63,12 @@ class TokenGrantAuthorizationCodeHelper {
             });
           }
 
+          const codeChallenge = req.cookies?.[oauthContext.codeChallengeCookieVariableName]
+
           /**
            * Code verifier check
            */
-          if (oauthCode.codeChallenge) {
+          if (codeChallenge) {
             if (!data.code_verifier) {
               return OauthHelper.throwError(req, res, {
                 error: "invalid_request",
@@ -75,7 +77,7 @@ class TokenGrantAuthorizationCodeHelper {
             } else {
               switch (oauthCode.codeChallengeMethod) {
                 case "plain":
-                  if (data.code_verifier !== oauthCode.codeChallenge) {
+                  if (data.code_verifier !== codeChallenge) {
                     return OauthHelper.throwError(req, res, {
                       error: "invalid_grant",
                       error_description: `Code verifier and code challenge are not identical.`,
@@ -92,7 +94,7 @@ class TokenGrantAuthorizationCodeHelper {
                     .replace(/\+/g, "-")
                     .replace(/\//g, "_");
 
-                  if (hashed !== oauthCode.codeChallenge) {
+                  if (hashed !== codeChallenge) {
                     return OauthHelper.throwError(req, res, {
                       error: "invalid_grant",
                       error_description: `Hashed code verifier and code challenge are not identical.`,
@@ -109,7 +111,10 @@ class TokenGrantAuthorizationCodeHelper {
            * ******************************
            */
           const tokens = await client.newAccessToken({
-            req: req,
+            req: {
+              host: req.hostname,
+              userAgent: req.headers['user-agent']
+            },
             oauthContext: oauthContext,
             grant: "authorization_code",
             scope: oauthCode.scope,

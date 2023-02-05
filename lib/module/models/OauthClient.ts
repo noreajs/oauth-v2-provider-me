@@ -24,7 +24,7 @@ export type OauthTokenType = {
 };
 
 export type NewAccessTokenParamsType = {
-  req: { host: string; userAgent?: string };
+  req: { host: string, userAgent?: string };
   oauthContext: OauthContext;
   grant: OauthClientGrantType;
   scope: string;

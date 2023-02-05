@@ -109,4 +109,9 @@ export interface IOauthContext {
    * Login page page path (ejs file)
    */
   loginPagePath?: string[];
+
+  /**
+   * Cookie variable name to the state or code verifier
+   */
+  stateCookieVariableName?: string
 }

@@ -57,7 +57,10 @@ class TokenGrantClientCredentialsHelper {
          * ******************************
          */
         const tokens = await client.newAccessToken({
-          req: req,
+          req: {
+            host: req.hostname,
+            userAgent: req.headers['user-agent']
+          },
           oauthContext: oauthContext,
           grant: "client_credentials",
           scope: mergedScope,

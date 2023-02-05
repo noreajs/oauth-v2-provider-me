@@ -31,6 +31,9 @@ export default class OauthContext {
   refreshTokenExpiresIn: OauthExpiresInType;
   strategies: Array<OauthStrategy>;
   loginPagePath: string[];
+  stateCookieVariableName: string;
+  codeChallengeCookieVariableName: string;
+  codeVerifierCookieVariableName: string;
 
   constructor(init: IOauthContext) {
     /**
@@ -67,5 +70,8 @@ export default class OauthContext {
     this.tokenType = init.tokenType ?? "Bearer";
     this.strategies = init.strategies ?? [];
     this.loginPagePath = init.loginPagePath ?? [];
+    this.stateCookieVariableName = `oauth.v2.provider.state`;
+    this.codeChallengeCookieVariableName = `${this.stateCookieVariableName}.code-challenge`
+    this.codeVerifierCookieVariableName = `${this.stateCookieVariableName}.code-verifier`
   }
 }
