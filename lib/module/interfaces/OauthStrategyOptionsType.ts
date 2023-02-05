@@ -1,15 +1,18 @@
-import OauthClient from "oauth-v2-client";
+import OauthClient, { TokenResponse } from "oauth-v2-client";
 import { IEndUserAuthData } from "../..";
 import OauthStrategyGrantType from "./OauthStrategyGrantType";
 
-type OauthStrategyOptionsType = {
+export type UserLookupFunc<T = TokenResponse> = (
+  client: OauthClient,
+  token: T
+) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
+
+type OauthStrategyOptionsType<TokenType = TokenResponse> = {
   identifier: string;
   providerName?: string;
   grant: OauthStrategyGrantType;
   client: OauthClient;
-  userLookup: (
-    client: OauthClient
-  ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
+  userLookup: UserLookupFunc<TokenType>;
 };
 
 export default OauthStrategyOptionsType;

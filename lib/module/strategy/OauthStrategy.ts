@@ -1,15 +1,13 @@
-import OauthClient from "oauth-v2-client";
-import { IEndUserAuthData } from "../..";
+import { TokenResponse } from "oauth-v2-client";
 import OauthStrategyGrantType from "../interfaces/OauthStrategyGrantType";
-import OauthStrategyOptionsType from "../interfaces/OauthStrategyOptionsType";
+import OauthStrategyOptionsType, { UserLookupFunc } from "../interfaces/OauthStrategyOptionsType";
 
-export default class OauthStrategy {
-  options: OauthStrategyOptionsType;
-  userLookup: (
-    client: OauthClient
-  ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
 
-  constructor(options: OauthStrategyOptionsType) {
+export default class OauthStrategy<TokenType = TokenResponse> {
+  options: OauthStrategyOptionsType<TokenType>;
+  userLookup: UserLookupFunc<TokenType>;
+
+  constructor(options: OauthStrategyOptionsType<TokenType>) {
     this.options = options;
     this.userLookup = options.userLookup;
   }

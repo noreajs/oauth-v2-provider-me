@@ -1,6 +1,6 @@
 import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
-import { injectQueryParams } from "oauth-v2-client";
+import { injectQueryParams, TokenResponse } from "oauth-v2-client";
 import { v4 as uuidV4 } from "uuid";
 import HttpStatus from "../helpers/HttpStatus";
 import OauthHelper from "../helpers/OauthHelper";
@@ -152,11 +152,13 @@ class StrategyController extends OauthController {
           switch (strategy.options.grant) {
             case "password":
               return new Promise(async (resolve, reject) => {
-                await strategy.options.client.password.getToken({
+                await strategy.options.client.password.getToken<TokenResponse>({
                   username: req.body.username,
                   password: req.body.password,
-                  onSuccess: async () => {
-                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  onSuccess: async (token) => {
+                    resolve(await this.lookupAndRedirect({
+                      context: this.oauthContext, req, res, authCode, strategy, token
+                    }))
                   },
                   onError: (error: any) => {
                     reject(OauthHelper.throwError(
@@ -246,11 +248,11 @@ class StrategyController extends OauthController {
           switch (strategy.options.grant) {
             case "authorization_code":
               return new Promise(async (resolve, reject) => {
-                await strategy.options.client.authorizationCode.getToken({
+                await strategy.options.client.authorizationCode.getToken<TokenResponse>({
                   state: (req.session as any)?.strategyState,
                   callbackUrl: req.originalUrl,
-                  onSuccess: async (_token: string) => {
-                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  onSuccess: async (token) => {
+                    resolve(await this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token }))
                   },
                   onError: (error: any) => {
                     reject(OauthHelper.throwError(
@@ -271,11 +273,11 @@ class StrategyController extends OauthController {
 
             case "authorization_code_pkce":
               return new Promise(async (resolve, reject) => {
-                await strategy.options.client.authorizationCodePKCE.getToken({
+                await strategy.options.client.authorizationCodePKCE.getToken<TokenResponse>({
                   state: (req.session as any)?.strategyState,
                   callbackUrl: req.originalUrl,
-                  onSuccess: async () => {
-                    resolve(await this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy))
+                  onSuccess: async (token) => {
+                    resolve(await this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token }))
                   },
                   onError: (error: any) => {
                     reject(OauthHelper.throwError(
@@ -296,12 +298,12 @@ class StrategyController extends OauthController {
 
             case "implicit":
               // extract token
-              strategy.options.client.implicit.getToken(
+              const token = strategy.options.client.implicit.getToken<TokenResponse>(
                 req.originalUrl,
                 (req.session as any)?.strategyState
               );
 
-              return this.lookupAndRedirect(this.oauthContext, req, res, authCode, strategy);
+              return this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token });
 
             default:
               return OauthHelper.throwError(
@@ -348,26 +350,29 @@ class StrategyController extends OauthController {
    * @param strategy strategy
    */
   private async lookupAndRedirect(
-    context: OauthContext,
-    req: Request,
-    res: Response,
-    authCode: IOauthAuthCode,
-    strategy: OauthStrategy
+    params: {
+      context: OauthContext,
+      req: Request,
+      res: Response,
+      authCode: IOauthAuthCode,
+      strategy: OauthStrategy,
+      token: TokenResponse
+    }
   ) {
     // lookup user
-    const endUserData = await strategy.userLookup(strategy.options.client);
+    const endUserData = await params.strategy.userLookup(params.strategy.options.client, params.token);
 
     /**
      * User exist
      */
     if (endUserData) {
       const currentData: ISessionCurrentData = {
-        responseType: authCode.responseType,
+        responseType: params.authCode.responseType,
         authData: endUserData,
       };
 
-      if (req.session) {
-        (req.session as any).currentData = currentData;
+      if (params.req.session) {
+        (params.req.session as any).currentData = currentData;
       } else {
         throw Error("Unable to access to session");
       }
@@ -377,38 +382,38 @@ class StrategyController extends OauthController {
        * =============================================
        */
       const queryParams: any = {
-        client_id: authCode.client.clientId,
-        scope: authCode.scope,
-        response_type: authCode.responseType,
-        redirect_uri: authCode.redirectUri,
-        state: req.cookies[context.stateCookieVariableName],
-        code_challenge_method: authCode.codeChallengeMethod,
-        code_challenge: req.cookies[context.codeChallengeCookieVariableName],
+        client_id: params.authCode.client.clientId,
+        scope: params.authCode.scope,
+        response_type: params.authCode.responseType,
+        redirect_uri: params.authCode.redirectUri,
+        state: params.req.cookies[params.context.stateCookieVariableName],
+        code_challenge_method: params.authCode.codeChallengeMethod,
+        code_challenge: params.req.cookies[params.context.codeChallengeCookieVariableName],
       };
 
-      return res.redirect(
+      return params.res.redirect(
         HttpStatus.MovedPermanently,
         injectQueryParams(
-          `${UrlHelper.getFullUrl(req)}/${AuthorizationController.OAUTH_AUTHORIZE_PATH
+          `${UrlHelper.getFullUrl(params.req)}/${AuthorizationController.OAUTH_AUTHORIZE_PATH
           }`,
           Obj.cleanWithEmpty(queryParams)
         )
       );
     } else {
       return OauthHelper.throwError(
-        req,
-        res,
+        params.req,
+        params.res,
         Obj.merge(
-          Obj.extend({ data: req.query, omits: ["code", "state"] }),
+          Obj.extend({ data: params.req.query, omits: ["code", "state"] }),
           {
-            state: req.cookies?.[this.oauthContext.stateCookieVariableName],
+            state: params.req.cookies?.[this.oauthContext.stateCookieVariableName],
             error: "access_denied",
-            error_description: `No account is associated with your ${`${strategy.options.providerName ?? strategy.options.identifier
+            error_description: `No account is associated with your ${`${params.strategy.options.providerName ?? params.strategy.options.identifier
               }`.toLowerCase()} profile.`,
           },
           "left"
         ),
-        authCode?.redirectUri
+        params.authCode?.redirectUri
       );
     }
   }
