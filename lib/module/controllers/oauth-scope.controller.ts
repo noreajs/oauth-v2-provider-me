@@ -53,24 +53,22 @@ export default class OauthScopeController extends OauthController {
   async edit(req: Request, res: Response) {
     try {
       // load client
-      const scope = await OauthScope.findById(req.params.scopeId);
+      const scope = await OauthScope.findById<IOauthScope>(req.params.scopeId);
 
       if (scope) {
-        // apply changes
-        scope.set({
+        // changes
+        const changes = {
           name: req.body.name || scope.name,
           description: req.body.description || scope.description,
           parent: req.body.parent || scope.parent._id,
-        } as Partial<IOauthScope>);
-        // change approval state
-        if (req.body.revoked !== undefined) {
-          scope.set({
-            revokedAt: req.body.revoked ? new Date() : undefined,
-          });
-        }
+        } as Partial<IOauthScope>;
+        // apply changes
+        await scope.update({
+          $set: changes
+        })
 
-        // save changes
-        await scope.save();
+        // inject changes
+        scope.set(changes)
 
         return res.status(HttpStatus.Ok).json(scope);
       } else {

@@ -1,6 +1,7 @@
 import { Obj } from "@noreajs/common";
 import { Request, Response } from "express";
 import { injectQueryParams, TokenResponse } from "oauth-v2-client";
+import { serializeError } from "serialize-error";
 import { v4 as uuidV4 } from "uuid";
 import HttpStatus from "../helpers/HttpStatus";
 import OauthHelper from "../helpers/OauthHelper";
@@ -247,35 +248,41 @@ class StrategyController extends OauthController {
         } else {
           switch (strategy.options.grant) {
             case "authorization_code":
-              return new Promise(async (resolve, reject) => {
-                await strategy.options.client.authorizationCode.getToken<TokenResponse>({
-                  state: (req.session as any)?.strategyState,
-                  callbackUrl: req.originalUrl,
-                  onSuccess: async (token) => {
-                    resolve(await this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token }))
+              try {
+                const authorizationCodeToken = await new Promise<TokenResponse>(async (resolve, reject) => {
+                  await strategy.options.client.authorizationCode.getToken<TokenResponse>({
+                    state: (req.session as any)?.strategyState,
+                    callbackUrl: `${UrlHelper.getFullUrl(req)}${req.originalUrl}`,
+                    onSuccess: (token) => {
+                      resolve(token)
+                    },
+                    onError: (error) => {
+                      reject(error)
+                    },
+                  });
+                })
+
+                return await this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token: authorizationCodeToken })
+              } catch (error) {
+                return OauthHelper.throwError(
+                  req,
+                  res,
+                  {
+                    error: "access_denied",
+                    error_description:
+                      (error as any).message ??
+                      `Failed to get ${strategy.options.identifier} token.`,
+                    state: req.cookies[this.oauthContext.stateCookieVariableName],
                   },
-                  onError: (error: any) => {
-                    reject(OauthHelper.throwError(
-                      req,
-                      res,
-                      {
-                        error: "access_denied",
-                        error_description:
-                          error.message ??
-                          `Failed to get ${strategy.options.identifier} token.`,
-                        state: req.cookies[this.oauthContext.stateCookieVariableName],
-                      },
-                      authCode.redirectUri
-                    ))
-                  },
-                });
-              })
+                  authCode.redirectUri
+                )
+              }
 
             case "authorization_code_pkce":
               return new Promise(async (resolve, reject) => {
                 await strategy.options.client.authorizationCodePKCE.getToken<TokenResponse>({
                   state: (req.session as any)?.strategyState,
-                  callbackUrl: req.originalUrl,
+                  callbackUrl: `${UrlHelper.getFullUrl(req)}${req.originalUrl}`,
                   onSuccess: async (token) => {
                     resolve(await this.lookupAndRedirect({ context: this.oauthContext, req, res, authCode, strategy, token }))
                   },
@@ -299,7 +306,7 @@ class StrategyController extends OauthController {
             case "implicit":
               // extract token
               const token = strategy.options.client.implicit.getToken<TokenResponse>(
-                req.originalUrl,
+                `${UrlHelper.getFullUrl(req)}${req.originalUrl}`,
                 (req.session as any)?.strategyState
               );
 

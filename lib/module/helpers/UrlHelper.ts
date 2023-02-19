@@ -12,7 +12,7 @@ class UrlHelper {
   }
 
   getFullUrl(req: Request) {
-    return req.protocol + "://" + req.get("host");
+    return req.protocol + "://" + req.get('host');
   }
 }
 

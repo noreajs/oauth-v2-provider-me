@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
-import OauthClient from "../models/OauthClient";
+import OauthClient, { IOauthClient } from "../models/OauthClient";
 import OauthHelper from "../helpers/OauthHelper";
 import { Obj } from "@noreajs/common";
 import { serializeError } from "serialize-error";
@@ -31,9 +31,8 @@ class AuthorizationMiddleware {
           res,
           {
             error: "invalid_request",
-            error_description: `${requiredParameters.join(", ")} ${
-              requiredParameters.length > 1 ? "are required" : "is required"
-            }`,
+            error_description: `${requiredParameters.join(", ")} ${requiredParameters.length > 1 ? "are required" : "is required"
+              }`,
             state: data.state,
           },
           data.redirect_uri
@@ -63,7 +62,7 @@ class AuthorizationMiddleware {
        * Authentificate client
        * ***************************************
        */
-      const client = await OauthClient.findOne({ clientId: data.client_id });
+      const client = await OauthClient.findOne<IOauthClient>({ clientId: data.client_id });
 
       /**
        * Client exists
@@ -106,7 +105,18 @@ class AuthorizationMiddleware {
         );
       }
 
-      if (!client.redirectURIs.includes(data.redirect_uri)) {
+      if (!client.redirectURIs.find(uriItem => {
+        try {
+          // request uri
+          const requestUri = new URL(data.redirect_uri)
+          // defined uri
+          const uri = new URL(uriItem)
+
+          return `${requestUri.protocol}${requestUri.host}` === `${uri.protocol}${uri.host}`
+        } catch (error) {
+          return false
+        }
+      })) {
         return OauthHelper.throwError(
           req,
           res,

@@ -66,11 +66,11 @@ class OauthClientController extends OauthController {
   async edit(req: Request, res: Response) {
     try {
       // load client
-      const client = await OauthClient.findById(req.params.clientId);
+      const client = await OauthClient.findById<IOauthClient>(req.params.clientId);
 
       if (client) {
-        // apply changes
-        client.set({
+        // const changes
+        const changes = {
           name: Object.keys(req.body).includes("name")
             ? req.body.name
             : client.name,
@@ -105,16 +105,20 @@ class OauthClientController extends OauthController {
           personal: Object.keys(req.body).includes("personal")
             ? req.body.personal
             : client.personal,
-        } as Partial<IOauthClient>);
+        } as Partial<IOauthClient>
+
         // change approval state
         if (req.body.revoked !== undefined) {
-          client.set({
-            revokedAt: req.body.revoked ? new Date() : undefined,
-          });
+          changes['revokedAt'] = req.body.revoked ? new Date() : undefined;
         }
 
-        // save changes
-        await client.save();
+        // update the client
+        await client.update({
+          $set: changes
+        })
+
+        // inject the changes
+        client.set(changes)
 
         return res.status(HttpStatus.Ok).json(client);
       } else {
