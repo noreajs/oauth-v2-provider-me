@@ -63,7 +63,7 @@ export default class OauthScopeController extends OauthController {
           parent: req.body.parent || scope.parent._id,
         } as Partial<IOauthScope>;
         // apply changes
-        await scope.update({
+        await scope.updateOne({
           $set: changes
         })
 

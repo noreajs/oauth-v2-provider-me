@@ -113,7 +113,7 @@ class OauthClientController extends OauthController {
         }
 
         // update the client
-        await client.update({
+        await client.updateOne({
           $set: changes
         })
 
